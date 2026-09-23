@@ -57,6 +57,7 @@ function orderData(orderId) {
   const items = db.prepare('SELECT * FROM order_items WHERE order_id = ? ORDER BY sort, id').all(orderId);
   let estimatedTotal = 0;
   let finalTotal = 0;
+  let actualSum = 0;
   let lateFee = 0;
   const nowMs = new Date(localNow()).getTime();
 
@@ -100,10 +101,11 @@ function orderData(orderId) {
     oi.est_cost = round(lineEst);
     oi.cost = round(order.status === 'active' ? lineEst : lineFinal);
     estimatedTotal += lineEst;
-    finalTotal += lineFinal;
+    actualSum += lineFinal;
   });
+  const actualTotal = round(actualSum + lateFee);
   if (order.status === 'active') finalTotal = estimatedTotal;
-  else finalTotal += lateFee;
+  else finalTotal = actualTotal;
 
   const payments = db.prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id').all(orderId);
   const dep = payments.filter((x) => x.type === 'deposit').reduce((s, x) => s + x.amount, 0);
@@ -119,6 +121,11 @@ function orderData(orderId) {
   } else {
     toCharge = round(Math.max(0, finalTotal - received));
   }
+  let actualCharge = 0;
+  let actualRefund = 0;
+  const adiff = round(actualTotal - received);
+  if (adiff > 0) actualCharge = adiff;
+  else actualRefund = round(-adiff);
 
   return {
     ...order,
@@ -127,12 +134,15 @@ function orderData(orderId) {
     payments,
     estimated_total: round(estimatedTotal),
     final_total: round(finalTotal),
+    actual_total: actualTotal,
     late_fee: round(lateFee),
     deposit: dep,
     paid: paid,
     refunded: refunded,
     to_charge: round(toCharge),
-    to_refund: round(toRefund)
+    to_refund: round(toRefund),
+    actual_to_charge: round(actualCharge),
+    actual_to_refund: round(actualRefund)
   };
 }
 
@@ -368,6 +378,7 @@ app.post('/api/orders', (req, res) => {
   const { client_id, deposit, planned_end, notes, lines } = req.body;
   if (!client_id) return res.status(400).json({ error: 'Выберите клиента' });
   if (!lines || !lines.length) return res.status(400).json({ error: 'Добавьте позиции' });
+  if (!planned_end) return res.status(400).json({ error: 'Укажите срок возврата' });
   const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(client_id);
   if (!client) return res.status(400).json({ error: 'Клиент не найден' });
 

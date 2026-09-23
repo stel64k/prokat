@@ -34,7 +34,7 @@ const I18N = {
     found: 'Найдено: {names}',
     client_pick_title: 'Выбор клиента', search_ph: 'поиск', choose: 'Выбрать',
     pick_item_search_ph: 'поиск: тип, модель, размер, штрихкод', no_stock: 'Нет предметов на складе',
-    select_client: 'Выберите клиента', add_lines: 'Добавьте позиции', order_created: 'Заказ #{id} создан', order_title: 'Заказ #{id}',
+    select_client: 'Выберите клиента', select_return_date: 'Укажите срок возврата', add_lines: 'Добавьте позиции', order_created: 'Заказ #{id} создан', order_title: 'Заказ #{id}',
     print_contract: 'Печать договора', add_payment: 'Внести оплату', close: 'Закрыть',
     client_label: 'Клиент: {name}', issue_return_plan: 'Выдача: {t} &nbsp; Возврат план: {t2}',
     position: 'Позиция', units_barcode: 'Единицы (штрихкод)', amount: 'Сумма', total: 'Итого',
@@ -50,10 +50,11 @@ const I18N = {
     order_for: 'Заказ #{id} — {name}', issue_at: 'Выдача:', return_plan_at: 'План возврата:',
     returned_ratio: 'сдано {a} / {b}', units: 'Единицы', all_returned_total: 'Все предметы сданы. Итого: {v}',
     paid: 'Оплачено', to_refund: 'Возврат залога/сдачи: {v}', pay_refund: 'Оплата / возврат',
+    plan_cost: 'По плану: {v}', actual_cost: 'По факту (на текущую дату): {v}', late_fee_badge: 'штраф за просрочку: {v}', received_label: 'Получено: {v}',
     close_order: 'Закрыть заказ', print_receipt: 'Печать квитанции',
     item_condition: 'Состояние предмета', condition_hint: 'Предмет возвращён. Укажите состояние.',
     ok_cond: 'В порядке', cancel: 'Отмена', damage_desc: 'Описание повреждения', record: 'Зафиксировать',
-    accepted: 'Принято', damage_recorded: 'Повреждение зафиксировано', order_closed: 'Заказ #{id} закрыт',
+    accepted: 'Принято', damage_recorded: 'Повреждение зафиксировано', order_closed: 'Заказ #{id} закрыт', order_closed_total: 'Заказ #{id} закрыт. Итого: {v}',
     payment_order: 'Платёж — заказ #{id}', payment_summary: 'Итого: {v} · Залог: {d} · Оплачено: {p} · Возвраты: {r}',
     pay: 'Оплата', refund_type: 'Возврат (залога/сдачи)', method: 'Способ', cash: 'Наличные', card: 'Карта',
     save: 'Сохранить', saved: 'Сохранено',
@@ -128,7 +129,7 @@ const I18N = {
     found: 'Знайдено: {names}',
     client_pick_title: 'Вибір клієнта', search_ph: 'пошук', choose: 'Вибрати',
     pick_item_search_ph: 'пошук: тип, модель, розмір, штрихкод', no_stock: 'Немає предметів на складі',
-    select_client: 'Виберіть клієнта', add_lines: 'Додайте позиції', order_created: 'Замовлення #{id} створено', order_title: 'Замовлення #{id}',
+    select_client: 'Виберіть клієнта', select_return_date: 'Вкажіть строк повернення', add_lines: 'Додайте позиції', order_created: 'Замовлення #{id} створено', order_title: 'Замовлення #{id}',
     print_contract: 'Друк договору', add_payment: 'Внести оплату', close: 'Закрити',
     client_label: 'Клієнт: {name}', issue_return_plan: 'Видача: {t} &nbsp; Повернення план: {t2}',
     position: 'Позиція', units_barcode: 'Одиниці (штрихкод)', amount: 'Сума', total: 'Разом',
@@ -144,10 +145,11 @@ const I18N = {
     order_for: 'Замовлення #{id} — {name}', issue_at: 'Видача:', return_plan_at: 'План повернення:',
     returned_ratio: 'здано {a} / {b}', units: 'Одиниці', all_returned_total: 'Усі предмети здано. Разом: {v}',
     paid: 'Оплачено', to_refund: 'Повернення застави/решти: {v}', pay_refund: 'Оплата / повернення',
+    plan_cost: 'За планом: {v}', actual_cost: 'За фактом (на поточну дату): {v}', late_fee_badge: 'штраф за прострочення: {v}', received_label: 'Отримано: {v}',
     close_order: 'Закрити замовлення', print_receipt: 'Друк квитанції',
     item_condition: 'Стан предмета', condition_hint: 'Предмет повернуто. Укажіть стан.',
     ok_cond: 'У порядку', cancel: 'Скасувати', damage_desc: 'Опис пошкодження', record: 'Зафіксувати',
-    accepted: 'Прийнято', damage_recorded: 'Пошкодження зафіксовано', order_closed: 'Замовлення #{id} закрито',
+    accepted: 'Прийнято', damage_recorded: 'Пошкодження зафіксовано', order_closed: 'Замовлення #{id} закрито', order_closed_total: 'Замовлення #{id} закрито. Разом: {v}',
     payment_order: 'Платіж — замовлення #{id}', payment_summary: 'Разом: {v} · Застава: {d} · Оплачено: {p} · Повернення: {r}',
     pay: 'Оплата', refund_type: 'Повернення (застави/решти)', method: 'Спосіб', cash: 'Готівка', card: 'Картка',
     save: 'Зберегти', saved: 'Збережено',
@@ -222,7 +224,7 @@ const I18N = {
     found: 'Found: {names}',
     client_pick_title: 'Pick client', search_ph: 'search', choose: 'Choose',
     pick_item_search_ph: 'search: type, model, size, barcode', no_stock: 'No items in stock',
-    select_client: 'Select a client', add_lines: 'Add items', order_created: 'Order #{id} created', order_title: 'Order #{id}',
+    select_client: 'Select a client', select_return_date: 'Set the return date', add_lines: 'Add items', order_created: 'Order #{id} created', order_title: 'Order #{id}',
     print_contract: 'Print contract', add_payment: 'Add payment', close: 'Close',
     client_label: 'Client: {name}', issue_return_plan: 'Issued: {t} &nbsp; Return plan: {t2}',
     position: 'Item', units_barcode: 'Units (barcode)', amount: 'Amount', total: 'Total',
@@ -238,10 +240,11 @@ const I18N = {
     order_for: 'Order #{id} — {name}', issue_at: 'Issued:', return_plan_at: 'Return plan:',
     returned_ratio: 'returned {a} / {b}', units: 'Units', all_returned_total: 'All items returned. Total: {v}',
     paid: 'Paid', to_refund: 'Refund deposit/change: {v}', pay_refund: 'Payment / refund',
+    plan_cost: 'Planned: {v}', actual_cost: 'Actual (as of today): {v}', late_fee_badge: 'late fee: {v}', received_label: 'Received: {v}',
     close_order: 'Close order', print_receipt: 'Print receipt',
     item_condition: 'Item condition', condition_hint: 'Item returned. Specify its condition.',
     ok_cond: 'OK', cancel: 'Cancel', damage_desc: 'Damage description', record: 'Record',
-    accepted: 'Accepted', damage_recorded: 'Damage recorded', order_closed: 'Order #{id} closed',
+    accepted: 'Accepted', damage_recorded: 'Damage recorded', order_closed: 'Order #{id} closed', order_closed_total: 'Order #{id} closed. Total: {v}',
     payment_order: 'Payment — order #{id}', payment_summary: 'Total: {v} · Deposit: {d} · Paid: {p} · Refunds: {r}',
     pay: 'Payment', refund_type: 'Refund (deposit/change)', method: 'Method', cash: 'Cash', card: 'Card',
     save: 'Save', saved: 'Saved',
@@ -752,6 +755,7 @@ async function createOrder() {
     const body = draftToCreate();
     if (!body.client_id) return toast(t('select_client'));
     if (!body.lines.length) return toast(t('add_lines'));
+    if (!body.planned_end) return toast(t('select_return_date'));
     const order = await api('/api/orders', { method: 'POST', body: JSON.stringify(body) });
     state.draft = { client: null, lines: [], planned_end: '', deposit: null, notes: '' };
     toast(t('order_created', { id: order.id }));
@@ -869,12 +873,19 @@ async function renderReceive() {
           <div class="badge active">${t('returned_ratio', { a: ret, b: ret + notRet })}</div>
         </div>
         <table><thead><tr><th>${t('position')}</th><th>${t('units')}</th></tr></thead><tbody>${rows}</tbody></table>
+        <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px">
+          <div class="row small">
+            <div>${t('plan_cost', { v: money(order.estimated_total) })}</div>
+            <div><b>${t('actual_cost', { v: money(order.actual_total) })}</b>${order.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(order.late_fee) })}</span>` : ''}</div>
+            <div>${t('received_label', { v: money(order.deposit + order.paid) })}</div>
+          </div>
+          ${order.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.actual_to_charge) })}</div>` : ''}
+          ${order.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.actual_to_refund) })}</div>` : ''}
+        </div>
         ${notRet === 0 ? `
-          <div class="status-box ok" style="margin-top:12px">${t('all_returned_total', { v: money(order.final_total) })}</div>
+          <div class="status-box ok" style="margin-top:12px">${t('all_returned_total', { v: money(order.actual_total) })}</div>
           <div class="total-row"><span>${t('deposit')}</span><span>${money(order.deposit)}</span></div>
           <div class="total-row"><span>${t('paid')}</span><span>${money(order.paid)}</span></div>
-          ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.to_charge) })}</div>` : ''}
-          ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.to_refund) })}</div>` : ''}
           <div class="row" style="margin-top:12px">
             <button class="btn ghost" onclick="recordPaymentModal(${order.id})">${t('pay_refund')}</button>
             <button class="btn green" onclick="closeOrder(${order.id})">${t('close_order')}</button>
@@ -923,8 +934,8 @@ async function returnUnitDone(unitId, ok, note) {
 
 async function closeOrder(id) {
   try {
-    await api('/api/orders/' + id + '/close', { method: 'POST', body: JSON.stringify({}) });
-    toast(t('order_closed', { id }));
+    const order = await api('/api/orders/' + id + '/close', { method: 'POST', body: JSON.stringify({}) });
+    toast(t('order_closed_total', { id, v: money(order.final_total) }));
     state.receiveOrderId = null;
     await renderReceive();
   } catch (e) { toast(e.message); }
