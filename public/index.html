@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Прокат</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand" id="brand">Прокат</div>
+  <nav id="nav">
+    <button data-tab="issue" class="active" data-i18n="tab_issue">Выдача</button>
+    <button data-tab="receive" data-i18n="tab_receive">Приёмка</button>
+    <button data-tab="orders" data-i18n="tab_orders">Заказы</button>
+    <button data-tab="inv" data-i18n="tab_inv">Склад</button>
+    <button data-tab="invcheck" data-i18n="tab_invcheck">Инвентаризация</button>
+    <button data-tab="clients" data-i18n="tab_clients">Клиенты</button>
+    <button data-tab="rates" data-i18n="tab_rates">Тарифы</button>
+    <button data-tab="reports" data-i18n="tab_reports">Отчёты</button>
+    <button data-tab="settings" data-i18n="tab_settings">Настройки</button>
+  </nav>
+  <button id="lang-btn" onclick="cycleLang()" title="Мова / Language">УКР</button>
+</header>
+<main>
+  <section id="tab-issue" class="view active"></section>
+  <section id="tab-receive" class="view"></section>
+  <section id="tab-orders" class="view"></section>
+  <section id="tab-inv" class="view"></section>
+  <section id="tab-invcheck" class="view"></section>
+  <section id="tab-clients" class="view"></section>
+  <section id="tab-rates" class="view"></section>
+  <section id="tab-reports" class="view"></section>
+  <section id="tab-settings" class="view"></section>
+</main>
+<div id="modal-root"></div>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

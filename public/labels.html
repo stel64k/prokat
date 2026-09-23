@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Печать этикеток</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 16px; }
+  .bar { margin-bottom: 12px; }
+  button { padding: 8px 18px; font-size: 14px; }
+  #labels { display: flex; flex-wrap: wrap; gap: 8px; }
+  .label {
+    border: 1px solid #ccc; border-radius: 4px; padding: 6px; width: 260px;
+    text-align: center; font-size: 13px; page-break-inside: avoid;
+  }
+  .label img { width: 100%; }
+  .label .info { margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <button data-l onclick="window.print()">Печать</button>
+</div>
+<div id="labels"></div>
+<script>
+  const L = { uk: { print: 'Друк', title: 'Друк етикеток' }, ru: { print: 'Печать', title: 'Печать этикеток' }, en: { print: 'Print', title: 'Label printing' } };
+  let lang = 'ru';
+  try { lang = localStorage.getItem('prokat_lang') || 'ru'; } catch (e) {}
+  const dict = L[lang] || L.ru;
+  document.title = dict.title;
+  document.querySelector('[data-l]').textContent = dict.print;
+</script>
+<script>
+  const ids = (new URLSearchParams(location.search).get('ids') || '').split(',').filter(Boolean);
+  const box = document.getElementById('labels');
+
+  fetch('/api/items').then((r) => r.json()).then((items) => {
+    let images = 0;
+    ids.forEach((id) => {
+      const it = items.find((x) => x.id == id);
+      const div = document.createElement('div');
+      div.className = 'label';
+      const img = document.createElement('img');
+      img.src = '/api/items/' + id + '/label';
+      img.onload = () => { images++; if (images === ids.length) setTimeout(() => window.print(), 350); };
+      div.appendChild(img);
+      if (it) {
+        const info = document.createElement('div');
+        info.className = 'info';
+        info.textContent = (it.brand ? it.brand + ' ' : '') + (it.model ? it.model + ' ' : '') + (it.size ? it.size : '');
+        div.appendChild(info);
+      }
+      box.appendChild(div);
+    });
+  });
+</script>
+</body>
+</html>
