@@ -121,7 +121,7 @@ function seed() {
   const catCount = db.prepare('SELECT COUNT(*) c FROM categories').get().c;
   if (catCount > 0) return;
 
-  const cats = ['Лыжи', 'Сноуборд', 'Ботинки', 'Крепления', 'Палки', 'Шлем', 'Маска'];
+  const cats = ['Лыжи', 'Ботинки лыжные', 'Палки', 'Сноуборд', 'Ботинки сноубордические', 'Шлем', 'Маска'];
   const insCat = db.prepare('INSERT INTO categories (name, sort) VALUES (?, ?)');
   const catIds = {};
   cats.forEach((c, i) => {
@@ -137,17 +137,13 @@ function seed() {
   insP.run('Комплект горнолыжный', 'kit', null,
     JSON.stringify([
       { category_id: catIds['Лыжи'], qty: 1 },
-      { category_id: catIds['Палки'], qty: 1 },
-      { category_id: catIds['Ботинки'], qty: 1 },
-      { category_id: catIds['Шлем'], qty: 1 },
-      { category_id: catIds['Маска'], qty: 1 }
+      { category_id: catIds['Ботинки лыжные'], qty: 1 },
+      { category_id: catIds['Палки'], qty: 1 }
     ]), 0, 600, 0, 0, 0, 1);
   insP.run('Комплект сноуборд', 'kit', null,
     JSON.stringify([
       { category_id: catIds['Сноуборд'], qty: 1 },
-      { category_id: catIds['Ботинки'], qty: 1 },
-      { category_id: catIds['Шлем'], qty: 1 },
-      { category_id: catIds['Маска'], qty: 1 }
+      { category_id: catIds['Ботинки сноубордические'], qty: 1 }
     ]), 0, 650, 0, 0, 0, 2);
 
   let sort = 10;
@@ -166,13 +162,14 @@ function seed() {
   `);
   const demoModels = {
     'Лыжи': ['Atomic Redster', 'Rossignol Hero', 'Fischer RC4'],
-    'Сноуборд': ['Burton Custom', 'Ride Machete'],
-    'Ботинки': ['Salomon S/Pro', 'Head Edge'],
-    'Крепления': ['Atomic GW', 'Look Pivot'],
+    'Ботинки лыжные': ['Salomon S/Pro', 'Head Edge'],
     'Палки': ['Leki Pure', 'Komperdell'],
+    'Сноуборд': ['Burton Custom', 'Ride Machete'],
+    'Ботинки сноубордические': ['DC Judge', 'Burton Imperial'],
     'Шлем': ['POC Obex', 'Salomon Icon'],
     'Маска': ['Dragon Rogue', 'Oakley Line']
   };
+  const skiSizes = ['150', '155', '160', '165', '170', '175'];
   const barcodes = {};
   let seq = 0;
   for (const c of cats) {
@@ -180,12 +177,12 @@ function seed() {
   }
   for (const c of cats) {
     const models = demoModels[c] || ['Стандарт'];
-    const count = c === 'Лыжи' ? 6 : c === 'Ботинки' ? 6 : 3;
+    const count = c === 'Лыжи' ? 6 : 3;
     for (let n = 0; n < count; n++) {
       seq += 1;
       const barcode = 'P' + String(seq).padStart(4, '0');
       insItem.run(barcode, catIds[c], c === 'Лыжи' || c === 'Сноуборд' ? models[n % models.length] : models[0],
-        c, c === 'Лыжи' ? ['150', '155', '160', '165', '170', '175'][n] : c === 'Ботинки' ? String(26 + n) : 'free');
+        c, c === 'Лыжи' ? skiSizes[n] : c.indexOf('Ботинки') === 0 ? String(26 + n) : 'free');
       barcodes[c].push(barcode);
     }
   }

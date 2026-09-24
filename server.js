@@ -22,13 +22,28 @@ function hoursBetween(t1, t2) {
   return Math.max(1, Math.ceil((b - a) / 3600000));
 }
 
+function rateMul(p, h) {
+  if (p && p.price_week && h >= 24 * 6) return Math.ceil(h / (24 * 7));
+  if (p && h >= 24) return Math.ceil(h / 24);
+  if (p && p.price_hour) return h;
+  return 1;
+}
+
+function ratePrice(p, h) {
+  if (p && p.price_week && h >= 24 * 6) return p.price_week;
+  if (p && h >= 24) return p.price_day;
+  if (p && p.price_hour) return p.price_hour;
+  return (p && p.price_day) || 0;
+}
+
+function unitRateCost(p, start, end) {
+  const h = hoursBetween(start, end);
+  return rateMul(p, h) * ratePrice(p, h);
+}
+
 function rentalCost(p, start, end) {
   if (p.kind === 'service') return round(p.price_flat || 0);
-  const h = hoursBetween(start, end);
-  if (p.price_week && h >= 24 * 6) return round(Math.ceil(h / (24 * 7)) * p.price_week);
-  if (h >= 24) return round(Math.ceil(h / 24) * p.price_day);
-  if (p.price_hour) return round(h * p.price_hour);
-  return round(p.price_day || 0);
+  return round(unitRateCost(p, start, end));
 }
 
 function getPricing(id) {
@@ -50,6 +65,13 @@ function lineUnits(oiId) {
   `).all(oiId);
 }
 
+function activeBundles() {
+  return db.prepare("SELECT * FROM pricings WHERE kind = 'kit' AND active = 1 ORDER BY sort, id").all().map((p) => {
+    try { p.kitItems = JSON.parse(p.kit_items); } catch { p.kitItems = []; }
+    return p;
+  }).filter((p) => p.kitItems && p.kitItems.length);
+}
+
 function orderData(orderId) {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
   if (!order) return null;
@@ -60,44 +82,66 @@ function orderData(orderId) {
   let actualSum = 0;
   let lateFee = 0;
   const nowMs = new Date(localNow()).getTime();
+  const baseEnd = order.planned_end ? new Date(order.planned_end).getTime() : nowMs;
+
+  items.forEach((oi) => { oi.units = lineUnits(oi.id); });
+  const allUnits = [];
+  items.forEach((oi) => oi.units.forEach((u) => allUnits.push(u)));
+
+  const perUnitRate = new Map();
+  const usedUnits = new Set();
+  const cnt = {};
+  allUnits.forEach((u) => { if (u.category_id) cnt[u.category_id] = (cnt[u.category_id] || 0) + 1; });
+  activeBundles().forEach((b) => {
+    let count = 0;
+    while (b.kitItems.every((k) => (cnt[k.category_id] || 0) >= k.qty)) {
+      b.kitItems.forEach((k) => { cnt[k.category_id] -= k.qty; });
+      count++;
+    }
+    if (!count) return;
+    const menCount = b.kitItems.reduce((s, k) => s + k.qty, 0);
+    const rate = {
+      price_hour: b.price_hour / menCount,
+      price_day: b.price_day / menCount,
+      price_week: b.price_week / menCount,
+      price_season: b.price_season / menCount
+    };
+    b.kitItems.forEach((k) => {
+      let need = k.qty * count;
+      allUnits.forEach((u) => {
+        if (!need) return;
+        if (u.category_id === k.category_id && !usedUnits.has(u.id)) {
+          usedUnits.add(u.id);
+          perUnitRate.set(u.id, rate);
+          need--;
+        }
+      });
+    });
+  });
+  const catRates = {};
+  db.prepare("SELECT * FROM pricings WHERE kind = 'category' AND active = 1").all().forEach((p) => {
+    if (p.category_id) catRates[p.category_id] = p;
+  });
 
   items.forEach((oi) => {
-    const p = getPricing(oi.pricing_id);
-    const units = lineUnits(oi.id);
     let lineEst = 0;
     let lineFinal = 0;
     if (oi.kind === 'service') {
       lineEst = oi.unit_price * oi.qty;
       lineFinal = lineEst;
-    } else if (p) {
-      const baseEnd = order.planned_end ? new Date(order.planned_end).getTime() : nowMs;
-      if (p.kind === 'kit') {
-        const endOfLine = units.length
-          ? Math.max.apply(null, units.map((u) => u.return_time ? new Date(u.return_time).getTime() : nowMs))
-          : nowMs;
-        lineEst = rentalCost(p, order.started_at, isNaN(baseEnd) ? nowMs : baseEnd);
-        lineFinal = rentalCost(p, order.started_at, endOfLine);
-        units.forEach((u) => {
-          if (u.return_time && order.planned_end && new Date(u.return_time).getTime() > new Date(order.planned_end).getTime()) {
-            const extraDays = Math.ceil((new Date(u.return_time).getTime() - new Date(order.planned_end).getTime()) / 86400000);
-            const rate = Number(setting('late_fee_per_day', '0')) || 0;
-            lateFee += extraDays * rate;
-          }
-        });
-      } else {
-        units.forEach((u) => {
-          lineEst += rentalCost(p, order.started_at, isNaN(baseEnd) ? nowMs : baseEnd);
-          const endMs = u.return_time ? new Date(u.return_time).getTime() : nowMs;
-          lineFinal += rentalCost(p, order.started_at, endMs);
-          if (u.return_time && order.planned_end && new Date(u.return_time).getTime() > new Date(order.planned_end).getTime()) {
-            const extraDays = Math.ceil((new Date(u.return_time).getTime() - new Date(order.planned_end).getTime()) / 86400000);
-            const rate = Number(setting('late_fee_per_day', '0')) || 0;
-            lateFee += extraDays * rate;
-          }
-        });
-      }
+    } else {
+      oi.units.forEach((u) => {
+        const rate = perUnitRate.get(u.id) || catRates[u.category_id] || {};
+        const endMs = u.return_time ? new Date(u.return_time).getTime() : nowMs;
+        lineEst += unitRateCost(rate, order.started_at, isNaN(baseEnd) ? nowMs : baseEnd);
+        lineFinal += unitRateCost(rate, order.started_at, endMs);
+        if (u.return_time && order.planned_end && endMs > baseEnd) {
+          const extraDays = Math.ceil((endMs - baseEnd) / 86400000);
+          lateFee += extraDays * (Number(setting('late_fee_per_day', '0')) || 0);
+        }
+      });
     }
-    oi.units = units;
+    oi.units = lineUnits(oi.id);
     oi.est_cost = round(lineEst);
     oi.cost = round(order.status === 'active' ? lineEst : lineFinal);
     estimatedTotal += lineEst;
@@ -334,43 +378,29 @@ function allocateUnits(oi, pricing) {
   const pinnedInOrder = db.prepare(`
     SELECT item_pin FROM order_items WHERE order_id = ? AND item_pin IS NOT NULL
   `).all(oi.order_id).map((r) => r.item_pin).filter((p) => p !== (oi.item_pin || null));
-  const need = [];
-  if (oi.kind === 'kit') {
-    (pricing.kitItems || []).forEach((k) => {
-      need.push({ category_id: k.category_id, qty: k.qty });
-    });
-  } else {
-    const pin = oi.item_pin;
-    if (pin) {
-      const it = db.prepare("SELECT * FROM items WHERE id = ? AND status = 'in_stock'").get(pin);
-      if (!it) throw new Error('Конкретный предмет уже выдан или отсутствует');
-      need.push({ category_id: pricing.category_id, qty: 1, pin: pin });
-    } else {
-      need.push({ category_id: pricing.category_id, qty: oi.qty });
-    }
-  }
+  const exclSql = pinnedInOrder.length ? pinnedInOrder.join(',') : '-1';
   const insUnit = db.prepare('INSERT INTO order_units (order_item_id, item_id) VALUES (?, ?)');
-  const pick = db.prepare(`
-    SELECT * FROM items
-    WHERE category_id = ? AND status = 'in_stock'
-      AND id NOT IN (${pinnedInOrder.length ? pinnedInOrder.join(',') : '-1'})
-    ORDER BY id LIMIT ?
-  `);
-  need.forEach((req) => {
-    let items;
-    if (req.pin) {
-      items = [db.prepare("SELECT * FROM items WHERE id = ?").get(req.pin)];
-    } else {
-      items = pick.all(req.category_id, req.qty);
-    }
-    if (items.length < req.qty) {
-      const cat = db.prepare('SELECT name FROM categories WHERE id = ?').get(req.category_id);
-      throw new Error('Недостаточно на складе: ' + (cat ? cat.name : '') + ' (нужно ' + req.qty + ')');
-    }
-    items.slice(0, req.qty).forEach((it) => {
-      insUnit.run(oi.id, it.id);
-      setItemStatus(it.id, 'rented');
-    });
+  let items;
+  if (oi.item_pin) {
+    const it = db.prepare("SELECT * FROM items WHERE id = ? AND status = 'in_stock'").get(oi.item_pin);
+    if (!it) throw new Error('Конкретный предмет уже выдан или отсутствует');
+    items = [it];
+  } else {
+    items = db.prepare(`
+      SELECT * FROM items
+      WHERE category_id = ? AND status = 'in_stock'
+        AND id NOT IN (${exclSql})
+      ORDER BY id LIMIT ${Math.max(oi.qty, 20)}
+    `).all(pricing.category_id);
+  }
+  const avail = items.slice(0, oi.qty);
+  if (avail.length < oi.qty) {
+    const cat = db.prepare('SELECT name FROM categories WHERE id = ?').get(pricing.category_id);
+    throw new Error('Недостаточно на складе: ' + (cat ? cat.name : '') + ' (нужно ' + oi.qty + ')');
+  }
+  avail.forEach((it) => {
+    insUnit.run(oi.id, it.id);
+    setItemStatus(it.id, 'rented');
   });
 }
 
@@ -399,7 +429,7 @@ app.post('/api/orders', (req, res) => {
         `).run(orderId, p.id, name, p.kind, Math.max(1, parseInt(ln.qty) || 1),
           p.kind === 'service' ? p.price_flat : 0, ln.item_pin || null, sort).lastInsertRowid;
         const oi = db.prepare('SELECT * FROM order_items WHERE id = ?').get(oiId);
-        allocateUnits(oi, p, {});
+        allocateUnits(oi, p);
         sort++;
       }
       return orderId;

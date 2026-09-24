@@ -22,7 +22,7 @@ const I18N = {
     already_added: 'Уже добавлено в заказ: {bc}', added: 'Добавлено: {bc}', added_full: 'Добавлено: {v}',
     not_rented: 'Предмет {code} не в аренде', start_inv_session: 'Начните сессию инвентаризации', scanned_inv: 'Отсканировано: {v}',
     service_label: 'услуга', auto_pick: 'подбор', specific: 'конкретный', remove: 'Убрать',
-    issue_empty_hint: 'Сканируйте предмет или добавьте комплект/услугу ниже.',
+    issue_empty_hint: 'Сканируйте предмет или добавьте категорию/услугу ниже.',
     issue_title: 'Выдача инвентаря', overdue_warn: 'Просрочены возвраты: {ids}',
     client: 'Клиент', client_search_ph: 'ФИО или телефон — поиск', pick_from_db: 'Выбрать из базы', new_client: 'Новый клиент',
     order_positions: 'Позиции заказа', kit_opt: 'Комплект…', category_opt: 'Отдельная категория…',
@@ -89,6 +89,7 @@ const I18N = {
     rates_title: 'Тарифы и услуги', new_rate: 'Новый тариф',
     rate_intervals_hint: 'Интервал времени: < 24 ч — по часовая ставка; ≥ 24 ч — по суточной (если задана недельная — начиная с 6 суток).',
     kits: 'Комплекты', name: 'Название', composition: 'Состав', price_day_col: 'Цена/сутки',
+    kit_auto_hint: 'Автоподбор: если в заказе есть все позиции из состава, цена берётся как за комплект (дешевле, чем по отдельности).',
     categories_title: 'Категории (за единицу)', hour: 'Час', day: 'Сутки', services: 'Услуги', price: 'Цена',
     per_unit: 'за единицу инвентаря', edit_short: 'Изм.', del_short: 'Уд.', edit_rate: 'Изменить тариф',
     kit: 'Комплект', category_per_unit: 'Категория (за единицу)', service_fixed: 'Услуга (фикс.)',
@@ -117,7 +118,7 @@ const I18N = {
     already_added: 'Вже додано до замовлення: {bc}', added: 'Додано: {bc}', added_full: 'Додано: {v}',
     not_rented: 'Предмет {code} не в оренді', start_inv_session: 'Почніть сесію інвентаризації', scanned_inv: 'Відскановано: {v}',
     service_label: 'послуга', auto_pick: 'підбір', specific: 'конкретний', remove: 'Прибрати',
-    issue_empty_hint: 'Відскануйте предмет або додайте комплект/послугу нижче.',
+    issue_empty_hint: 'Відскануйте предмет або додайте категорію/послугу нижче.',
     issue_title: 'Видача інвентарю', overdue_warn: 'Прострочено повернення: {ids}',
     client: 'Клієнт', client_search_ph: 'ПІБ або телефон — пошук', pick_from_db: 'Вибрати з бази', new_client: 'Новий клієнт',
     order_positions: 'Позиції замовлення', kit_opt: 'Комплект…', category_opt: 'Окрема категорія…',
@@ -184,6 +185,7 @@ const I18N = {
     rates_title: 'Тарифи та послуги', new_rate: 'Новий тариф',
     rate_intervals_hint: 'Інтервал часу: < 24 год — погодинна ставка; ≥ 24 год — добова (якщо задана тижнева — починаючи з 6 діб).',
     kits: 'Комплекти', name: 'Назва', composition: 'Склад', price_day_col: 'Ціна/доба',
+    kit_auto_hint: 'Автопідбір: якщо в замовленні є всі позиції зі складу, ціна береться як за комплект (дешевше, ніж окремо).',
     categories_title: 'Категорії (за одиницю)', hour: 'Година', day: 'Доба', services: 'Послуги', price: 'Ціна',
     per_unit: 'за одиницю інвентарю', edit_short: 'Зм.', del_short: 'Вид.', edit_rate: 'Змінити тариф',
     kit: 'Комплект', category_per_unit: 'Категорія (за одиницю)', service_fixed: 'Послуга (фікс.)',
@@ -212,7 +214,7 @@ const I18N = {
     already_added: 'Already added to order: {bc}', added: 'Added: {bc}', added_full: 'Added: {v}',
     not_rented: 'Item {code} is not on rent', start_inv_session: 'Start an inventory session', scanned_inv: 'Scanned: {v}',
     service_label: 'service', auto_pick: 'auto', specific: 'specific', remove: 'Remove',
-    issue_empty_hint: 'Scan an item or add a kit/service below.',
+    issue_empty_hint: 'Scan an item or add a category/service below.',
     issue_title: 'Issue equipment', overdue_warn: 'Overdue returns: {ids}',
     client: 'Client', client_search_ph: 'Name or phone — search', pick_from_db: 'Pick from base', new_client: 'New client',
     order_positions: 'Order items', kit_opt: 'Kit…', category_opt: 'Single category…',
@@ -279,6 +281,7 @@ const I18N = {
     rates_title: 'Rates and services', new_rate: 'New rate',
     rate_intervals_hint: 'Time interval: < 24 h — hourly rate; ≥ 24 h — daily rate (weekly rate applies from 6 days).',
     kits: 'Kits', name: 'Name', composition: 'Composition', price_day_col: 'Price/day',
+    kit_auto_hint: 'Auto-applied: if the order contains all items in the composition, the price is billed as a bundle (cheaper than separately).',
     categories_title: 'Categories (per unit)', hour: 'Hour', day: 'Day', services: 'Services', price: 'Price',
     per_unit: 'per unit of equipment', edit_short: 'Edit', del_short: 'Del.', edit_rate: 'Edit rate',
     kit: 'Kit', category_per_unit: 'Category (per unit)', service_fixed: 'Service (fixed)',
@@ -569,9 +572,6 @@ async function renderIssue() {
       <h3>${t('order_positions')}</h3>
       <div id="draft-lines">${linesHtml}</div>
       <div class="row" style="margin-top:10px">
-        <select id="i-kit" onchange="addKit(this)"><option value="">${t('kit_opt')}</option>
-          ${pricingActive('kit').map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
-        </select>
         <select id="i-cat" onchange="addCategory(this)"><option value="">${t('category_opt')}</option>
           ${pricingActive('category').map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
         </select>
@@ -649,11 +649,6 @@ function removeDraftLine(i) {
   state.draft.lines.splice(i, 1);
   renderIssue();
 }
-
-function addKit(sel) {
-  const p = state.pricings.find((x) => x.id == sel.value);
-  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'kit', name: p.name, qty: 1 }); renderIssue(); }
-}
 function addCategory(sel) {
   const p = state.pricings.find((x) => x.id == sel.value);
   if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'category', name: p.name, qty: 1 }); renderIssue(); }
@@ -685,7 +680,12 @@ async function pickItemModal() {
 
 function pickFilter(q) {
   const list = window._pickItems || [];
-  const f = list.filter((i) => (i.barcode + i.cat_name + i.brand + i.model + i.size).toLowerCase().includes(q.toLowerCase()));
+  const qs = String(q || '').trim().toLowerCase();
+  const f = list.filter((i) => {
+    if (!qs) return true;
+    const hay = (i.barcode + ' ' + i.cat_name + ' ' + i.brand + ' ' + i.model + ' ' + i.size + ' ' + i.cond).toLowerCase();
+    return qs.split(/\s+/).every((t) => hay.includes(t));
+  });
   $('#pk-list').innerHTML = pickRows(f);
 }
 
@@ -711,19 +711,34 @@ async function pickItemDo(barcode) {
 function estimateDraft() {
   const end = $('#i-end') ? $('#i-end').value : state.draft.planned_end;
   const start = new Date();
+  const h = Math.max(1, Math.ceil((new Date(end || new Date().toISOString().slice(0, 19).replace('T', ' ')) - start) / 3600000));
+  const priceFor = (p) => {
+    if (!p) return 0;
+    if (p.price_week && h >= 144) return Math.ceil(h / 168) * p.price_week;
+    if (h >= 24) return Math.ceil(h / 24) * p.price_day;
+    if (p.price_hour) return h * p.price_hour;
+    return p.price_day || 0;
+  };
   let total = 0;
+  const counts = {};
   state.draft.lines.forEach((l) => {
+    if (l.kind === 'service') { total += ((state.pricings.find((x) => x.id === l.pricing_id) || {}).price_flat || 0) * l.qty; return; }
     const p = state.pricings.find((x) => x.id === l.pricing_id);
-    if (!p) return;
-    if (p.kind === 'service') { total += p.price_flat * l.qty; return; }
-    const h = Math.max(1, Math.ceil((new Date(end || new Date().toISOString().slice(0, 19).replace('T', ' ')) - start) / 3600000));
-    let cost;
-    if (p.price_week && h >= 144) cost = Math.ceil(h / 168) * p.price_week;
-    else if (h >= 24) cost = Math.ceil(h / 24) * p.price_day;
-    else if (p.price_hour) cost = h * p.price_hour;
-    else cost = p.price_day;
-    const units = p.kind === 'kit' ? (p.kitItems || []).reduce((s, k) => s + k.qty, 0) : l.qty;
-    total += p.kind === 'kit' ? cost : cost * units;
+    if (!p || p.kind !== 'category') return;
+    counts[p.category_id] = (counts[p.category_id] || 0) + l.qty;
+  });
+  const rem = { ...counts };
+  state.pricings.filter((b) => b.kind === 'kit' && b.active && b.kitItems && b.kitItems.length)
+    .forEach((b) => {
+      while (b.kitItems.every((k) => (rem[k.category_id] || 0) >= k.qty)) {
+        b.kitItems.forEach((k) => { rem[k.category_id] -= k.qty; });
+        total += priceFor(b);
+      }
+    });
+  Object.keys(rem).forEach((cid) => {
+    if (!rem[cid]) return;
+    const p = state.pricings.find((x) => x.kind === 'category' && x.category_id == cid && x.active);
+    total += priceFor(p) * rem[cid];
   });
   return { total: Math.round(total * 100) / 100, end };
 }
@@ -770,10 +785,14 @@ async function createOrder() {
   } catch (e) { toast(e.message); }
 }
 
+function unitLabel(u) {
+  return [u.barcode, u.cat_name, u.brand, u.model, u.size].filter((x) => x).join(' · ');
+}
+
 function orderDetailHtml(order) {
   const rows = order.items.map((oi) => `
     <tr><td>${esc(oi.name)}</td>
-    <td>${oi.units.map((u) => `<span class="mono small">${esc(u.barcode)} ${esc(u.size)}${u.return_time ? ' ✓' : ''}</span>`).join('<br>') || '—'}</td>
+    <td>${oi.units.map((u) => `<span class="mono small">${esc(unitLabel(u))}${u.return_time ? ' ✓' : ''}</span>`).join('<br>') || '—'}</td>
     <td class="right">${money(oi.cost)}</td></tr>`).join('');
   return `
     <p class="small">${t('client_label', { name: esc(order.client ? order.client.name : '') })} ${esc(order.client ? order.client.phone : '')}</p>
@@ -791,7 +810,7 @@ function printContract() {
   const lines = order.items.map((oi) => `
     <tr><td>${esc(oi.name)}</td>
     <td>${esc(oi.kind)}</td>
-    <td>${oi.units.map((u) => esc(u.barcode)).join(', ')}</td>
+    <td>${oi.units.map((u) => esc(unitLabel(u))).join(', ')}</td>
     <td class="right">${money(oi.cost)}</td></tr>`).join('');
   printHtml(t('contract_title_short', { id: order.id }), `
     <h1>${esc(biz)}</h1>
@@ -857,8 +876,7 @@ async function renderReceive() {
         <td>${esc(oi.name)}</td>
         <td>${oi.units.map((u) => `
           <div class="line">
-            <span class="mono">${esc(u.barcode)}</span>
-            <span class="small">${esc(u.size)}</span>
+            <span class="mono">${esc(unitLabel(u))}</span>
             ${u.return_time
               ? `<span class="badge returned">${t('returned_at', { t: fmtDT(u.return_time) })}</span>${u.condition_ok ? '' : `<span class="badge service">${t('damage')}</span>`}`
               : `<button class="btn sm" onclick="conditionModal(${u.id})">${t('receive_btn')}</button>`}
@@ -1476,7 +1494,8 @@ async function renderRates() {
       <p class="small">${t('rate_intervals_hint')}</p>
     </div>
     <div class="card">
-      <h3>${t('kits')}</h3><table><thead><tr><th>${t('name')}</th><th>${t('composition')}</th><th class="right">${t('price_day_col')}</th><th></th></tr></thead><tbody>${kitRows}</tbody></table>
+      <h3>${t('kits')}</h3>
+      <p class="small">${t('kit_auto_hint')}</p><table><thead><tr><th>${t('name')}</th><th>${t('composition')}</th><th class="right">${t('price_day_col')}</th><th></th></tr></thead><tbody>${kitRows}</tbody></table>
       <h3>${t('categories_title')}</h3><table><thead><tr><th>${t('name')}</th><th>${t('type')}</th><th class="right">${t('hour')}</th><th class="right">${t('day')}</th><th></th></tr></thead><tbody>${catRows}</tbody></table>
       <h3>${t('services')}</h3><table><thead><tr><th>${t('name')}</th><th>${t('type')}</th><th class="right">${t('price')}</th><th></th></tr></thead><tbody>${svcRows}</tbody></table>
     </div>`;
