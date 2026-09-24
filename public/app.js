@@ -3,7 +3,7 @@ const state = {
   pricings: [],
   settings: {},
   tab: 'issue',
-  draft: { client: null, lines: [], planned_end: '', deposit: null, notes: '' },
+  draft: { client: null, clientName: '', lines: [], planned_end: '', deposit: null, notes: '' },
   receiveOrderId: null,
   invSessionId: null
 };
@@ -93,7 +93,7 @@ const I18N = {
     categories_title: 'Категории (за единицу)', hour: 'Час', day: 'Сутки', services: 'Услуги', price: 'Цена',
     per_unit: 'за единицу инвентаря', edit_short: 'Изм.', del_short: 'Уд.', edit_rate: 'Изменить тариф',
     kit: 'Комплект', category_per_unit: 'Категория (за единицу)', service_fixed: 'Услуга (фикс.)',
-    kit_composition: 'Состав комплекта', add_position: '+ позиция',
+    kit_composition: 'Состав комплекта', optional_short: 'необяз.', add_position: '+ позиция',
     hour_grn: 'Час (грн)', day_grn: 'Сутки (грн)', week_grn: 'Неделя (грн)', season_grn: 'Сезон (грн)',
     flat_price_grn: 'Фиксированная цена (грн, для услуги)', delete_rate_confirm: 'Удалить тариф?',
     reports_title: 'Отчёты', from_date: 'С', to_date: 'По', show: 'Показать',
@@ -189,7 +189,7 @@ const I18N = {
     categories_title: 'Категорії (за одиницю)', hour: 'Година', day: 'Доба', services: 'Послуги', price: 'Ціна',
     per_unit: 'за одиницю інвентарю', edit_short: 'Зм.', del_short: 'Вид.', edit_rate: 'Змінити тариф',
     kit: 'Комплект', category_per_unit: 'Категорія (за одиницю)', service_fixed: 'Послуга (фікс.)',
-    kit_composition: 'Склад комплекту', add_position: '+ позиція',
+    kit_composition: 'Склад комплекту', optional_short: 'необов.', add_position: '+ позиція',
     hour_grn: 'Година (грн)', day_grn: 'Доба (грн)', week_grn: 'Тиждень (грн)', season_grn: 'Сезон (грн)',
     flat_price_grn: 'Фіксована ціна (грн, для послуги)', delete_rate_confirm: 'Видалити тариф?',
     reports_title: 'Звіти', from_date: 'З', to_date: 'По', show: 'Показати',
@@ -285,7 +285,7 @@ const I18N = {
     categories_title: 'Categories (per unit)', hour: 'Hour', day: 'Day', services: 'Services', price: 'Price',
     per_unit: 'per unit of equipment', edit_short: 'Edit', del_short: 'Del.', edit_rate: 'Edit rate',
     kit: 'Kit', category_per_unit: 'Category (per unit)', service_fixed: 'Service (fixed)',
-    kit_composition: 'Kit composition', add_position: '+ item',
+    kit_composition: 'Kit composition', optional_short: 'opt.', add_position: '+ item',
     hour_grn: 'Hour (uah)', day_grn: 'Day (uah)', week_grn: 'Week (uah)', season_grn: 'Season (uah)',
     flat_price_grn: 'Fixed price (uah, for services)', delete_rate_confirm: 'Delete rate?',
     reports_title: 'Reports', from_date: 'From', to_date: 'To', show: 'Show',
@@ -446,7 +446,6 @@ async function switchTab(tab) {
   state.tab = tab;
   $$('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'tab-' + tab));
-  if (tab === 'issue') { state.draft = { client: null, lines: [], planned_end: '', deposit: null, notes: '' }; }
   if (tab === 'receive') { state.receiveOrderId = null; }
   const renderers = {
     issue: renderIssue, receive: renderReceive, orders: renderOrders,
@@ -508,6 +507,7 @@ async function issueScan(code) {
       pricing_id: pricing.id, kind: 'category', name: pricing.name, qty: 1, pin: it.id,
       barcode: it.barcode, model: it.model + ' ' + it.size, cat_name: it.cat_name });
     toast(t('added', { bc: it.barcode }));
+    syncDraftFields();
     renderIssue();
   } catch (e) { toast(e.message); }
 }
@@ -559,7 +559,7 @@ async function renderIssue() {
       <div class="row">
         <div class="grow">
           <label>${t('client')}</label>
-          <input id="i-client" placeholder="${t('client_search_ph')}" oninput="debouncedClientSearch(this.value)">
+          <input id="i-client" placeholder="${t('client_search_ph')}" value="${esc(st.client ? st.client.name : st.clientName || '')}" oninput="debouncedClientSearch(this.value)">
           <input type="hidden" id="i-client-id">
         </div>
         <button class="btn ghost" onclick="clientModal()">${t('pick_from_db')}</button>
@@ -626,16 +626,29 @@ function debouncedClientSearch(q) {
   }, 400);
 }
 
+function syncDraftFields() {
+  const st = state.draft;
+  if (!$('#draft-lines')) return;
+  if ($('#i-end')) st.planned_end = $('#i-end').value;
+  if ($('#i-deposit')) st.deposit = $('#i-deposit').value || null;
+  if ($('#i-notes')) st.notes = $('#i-notes').value;
+  if ($('#i-client')) st.clientName = $('#i-client').value;
+}
+
 function setClientBox(client) {
   state.draft.client = client;
+  state.draft.clientName = client.name;
   const info = $('#i-client-info');
   if (info) info.innerHTML = `<b>${esc(client.name)}</b> ${esc(client.phone)} ${esc(client.doc)} <button class="btn sm ghost" onclick="clientRemove()">×</button>`;
   const hid = $('#i-client-id');
   if (hid) hid.value = client.id;
+  const inp = $('#i-client');
+  if (inp && !inp.value) inp.value = client.name;
 }
 
 function clientRemove() {
   state.draft.client = null;
+  state.draft.clientName = '';
   $('#i-client').value = '';
   $('#i-client-id').value = '';
   $('#i-client-info').innerHTML = '';
@@ -643,19 +656,21 @@ function clientRemove() {
 
 function setDraftQty(i, v) {
   state.draft.lines[i].qty = Math.max(1, parseInt(v) || 1);
+  syncDraftFields();
   renderIssue();
 }
 function removeDraftLine(i) {
   state.draft.lines.splice(i, 1);
+  syncDraftFields();
   renderIssue();
 }
 function addCategory(sel) {
   const p = state.pricings.find((x) => x.id == sel.value);
-  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'category', name: p.name, qty: 1 }); renderIssue(); }
+  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'category', name: p.name, qty: 1 }); syncDraftFields(); renderIssue(); }
 }
 function addService(sel) {
   const p = state.pricings.find((x) => x.id == sel.value);
-  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'service', name: p.name, qty: 1, price: p.price_flat }); renderIssue(); }
+  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'service', name: p.name, qty: 1, price: p.price_flat }); syncDraftFields(); renderIssue(); }
 }
 
 function pickRows(list) {
@@ -705,6 +720,7 @@ async function pickItemDo(barcode) {
     barcode: it.barcode, model: it.brand + ' ' + it.model + ' ' + it.size, cat_name: it.cat_name });
   toast(t('added_full', { v: it.barcode + ' ' + it.model + ' ' + it.size }));
   closeModal();
+  syncDraftFields();
   renderIssue();
 }
 
@@ -730,8 +746,13 @@ function estimateDraft() {
   const rem = { ...counts };
   state.pricings.filter((b) => b.kind === 'kit' && b.active && b.kitItems && b.kitItems.length)
     .forEach((b) => {
-      while (b.kitItems.every((k) => (rem[k.category_id] || 0) >= k.qty)) {
-        b.kitItems.forEach((k) => { rem[k.category_id] -= k.qty; });
+      const members = b.kitItems;
+      const keys = members.filter((k) => !k.optional);
+      const req = keys.length ? keys : members;
+      const opt = members.filter((k) => k.optional);
+      while (req.every((k) => (rem[k.category_id] || 0) >= k.qty)) {
+        req.forEach((k) => { rem[k.category_id] -= k.qty; });
+        opt.forEach((k) => { if ((rem[k.category_id] || 0) >= k.qty) rem[k.category_id] -= k.qty; });
         total += priceFor(b);
       }
     });
@@ -772,7 +793,7 @@ async function createOrder() {
     if (!body.lines.length) return toast(t('add_lines'));
     if (!body.planned_end) return toast(t('select_return_date'));
     const order = await api('/api/orders', { method: 'POST', body: JSON.stringify(body) });
-    state.draft = { client: null, lines: [], planned_end: '', deposit: null, notes: '' };
+    state.draft = { client: null, clientName: '', lines: [], planned_end: '', deposit: null, notes: '' };
     toast(t('order_created', { id: order.id }));
     openModal(t('order_title', { id: order.id }), orderDetailHtml(order) + `
       <div class="row" style="margin-top:14px">
@@ -1476,7 +1497,7 @@ async function renderRates() {
   const kitRows = p.filter((x) => x.kind === 'kit').map((k) => `
     <tr>
       <td><b>${esc(k.name)}</b></td>
-      <td class="small">${(k.kitItems || []).map((ki) => `${catName(ki.category_id)} ×${ki.qty}`).join(', ')}</td>
+      <td class="small">${(k.kitItems || []).map((ki) => `${catName(ki.category_id)} ×${ki.qty}${ki.optional ? ' (' + t('optional_short') + ')' : ''}`).join(', ')}</td>
       <td class="right">${money(k.price_day)}</td>
       <td><button class="btn sm ghost" onclick="rateEdit(${k.id})">${t('edit_short')}</button> <button class="btn sm red" onclick="rateDel(${k.id})">${t('del_short')}</button></td>
     </tr>`).join('');
@@ -1542,11 +1563,12 @@ function rateFormHtml(p) {
     </div>`;
 }
 function kitLineHtml(ki, i) {
-  ki = ki || { category_id: '', qty: 1 };
+  ki = ki || { category_id: '', qty: 1, optional: false };
   const cats = state.categories;
   return `<div class="line">
     <select style="flex:1" onchange="kitLineSet(${i}, 'cat', this.value)">${cats.map((c) => `<option value="${c.id}" ${ki.category_id == c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
     <input type="number" style="width:70px" value="${ki.qty}" onchange="kitLineSet(${i}, 'qty', this.value)">
+    <label class="small" style="white-space:nowrap"><input type="checkbox" ${ki.optional ? 'checked' : ''} onchange="kitLineSet(${i}, 'opt', this.checked)"> ${t('optional_short')}</label>
     <button class="btn sm ghost" onclick="this.parentElement.remove()">×</button>
     </div>`;
 }
@@ -1560,7 +1582,8 @@ function rtKindChange() {
 async function rateSave(id) {
   const kitLines = $$('#rt-kit-lines .line').map((line) => ({
     category_id: parseInt($('select', line).value),
-    qty: Math.max(1, parseInt($('input', line).value) || 1)
+    qty: Math.max(1, parseInt($('input[type=number]', line).value) || 1),
+    optional: $('input[type=checkbox]', line) ? $('input[type=checkbox]', line).checked : false
   }));
   const body = {
     name: $('#rt-name').value,

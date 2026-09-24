@@ -138,7 +138,7 @@ function seed() {
     JSON.stringify([
       { category_id: catIds['Лыжи'], qty: 1 },
       { category_id: catIds['Ботинки лыжные'], qty: 1 },
-      { category_id: catIds['Палки'], qty: 1 }
+      { category_id: catIds['Палки'], qty: 1, optional: true }
     ]), 0, 600, 0, 0, 0, 1);
   insP.run('Комплект сноуборд', 'kit', null,
     JSON.stringify([

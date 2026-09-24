@@ -93,30 +93,38 @@ function orderData(orderId) {
   const cnt = {};
   allUnits.forEach((u) => { if (u.category_id) cnt[u.category_id] = (cnt[u.category_id] || 0) + 1; });
   activeBundles().forEach((b) => {
-    let count = 0;
-    while (b.kitItems.every((k) => (cnt[k.category_id] || 0) >= k.qty)) {
-      b.kitItems.forEach((k) => { cnt[k.category_id] -= k.qty; });
-      count++;
-    }
-    if (!count) return;
-    const menCount = b.kitItems.reduce((s, k) => s + k.qty, 0);
-    const rate = {
-      price_hour: b.price_hour / menCount,
-      price_day: b.price_day / menCount,
-      price_week: b.price_week / menCount,
-      price_season: b.price_season / menCount
-    };
-    b.kitItems.forEach((k) => {
-      let need = k.qty * count;
-      allUnits.forEach((u) => {
-        if (!need) return;
-        if (u.category_id === k.category_id && !usedUnits.has(u.id)) {
-          usedUnits.add(u.id);
-          perUnitRate.set(u.id, rate);
-          need--;
+    const members = b.kitItems || [];
+    const keys = members.filter((k) => !k.optional);
+    const req = keys.length ? keys : members;
+    const opt = members.filter((k) => k.optional);
+    while (req.every((k) => (cnt[k.category_id] || 0) >= k.qty)) {
+      req.forEach((k) => { cnt[k.category_id] -= k.qty; });
+      const inst = req.map((k) => ({ category_id: k.category_id, need: k.qty }));
+      opt.forEach((k) => {
+        if ((cnt[k.category_id] || 0) >= k.qty) {
+          cnt[k.category_id] -= k.qty;
+          inst.push({ category_id: k.category_id, need: k.qty });
         }
       });
-    });
+      const menCount = inst.reduce((s, k) => s + k.need, 0);
+      const rate = {
+        price_hour: b.price_hour / menCount,
+        price_day: b.price_day / menCount,
+        price_week: b.price_week / menCount,
+        price_season: b.price_season / menCount
+      };
+      inst.forEach((k) => {
+        let need = k.need;
+        allUnits.forEach((u) => {
+          if (!need) return;
+          if (u.category_id === k.category_id && !usedUnits.has(u.id)) {
+            usedUnits.add(u.id);
+            perUnitRate.set(u.id, rate);
+            need--;
+          }
+        });
+      });
+    }
   });
   const catRates = {};
   db.prepare("SELECT * FROM pricings WHERE kind = 'category' AND active = 1").all().forEach((p) => {
