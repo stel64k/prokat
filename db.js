@@ -5,7 +5,9 @@ const fs = require('fs');
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const db = new Database(path.join(DATA_DIR, 'prokat.db'));
+const DB_PATH = process.env.PROKAT_DB_PATH || path.join(DATA_DIR, 'prokat.db');
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -83,7 +85,8 @@ CREATE TABLE IF NOT EXISTS order_units (
   item_id INTEGER REFERENCES items(id),
   return_time TEXT,
   condition_ok INTEGER,
-  condition_note TEXT NOT NULL DEFAULT ''
+  condition_note TEXT NOT NULL DEFAULT '',
+  kit_set INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -109,11 +112,83 @@ CREATE TABLE IF NOT EXISTS inventory_scans (
   scanned_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 
+CREATE TABLE IF NOT EXISTS inventory_expected (
+  session_id INTEGER NOT NULL REFERENCES inventory_sessions(id),
+  item_id INTEGER NOT NULL REFERENCES items(id),
+  PRIMARY KEY (session_id, item_id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('admin','worker')),
+  active INTEGER NOT NULL DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
 `);
+
+db.exec(`
+CREATE INDEX IF NOT EXISTS idx_orders_status_id ON orders(status, id DESC);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_units_item ON order_units(order_item_id);
+CREATE INDEX IF NOT EXISTS idx_order_units_item_id ON order_units(item_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_items_status_category ON items(status, category_id);
+CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(name);
+`);
+
+db.prepare('DELETE FROM user_sessions WHERE expires_at <= ?').run(Date.now());
+
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!columns.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+ensureColumn('order_units', 'rate_snapshot', 'TEXT');
+ensureColumn('orders', 'late_fee_snapshot', 'REAL');
+ensureColumn('orders', 'return_grace_enabled_snapshot', 'INTEGER');
+ensureColumn('orders', 'return_grace_hours_snapshot', 'REAL');
+
+db.prepare(`
+  INSERT INTO inventory_expected (session_id, item_id)
+  SELECT s.id, i.id FROM inventory_sessions s CROSS JOIN items i
+  WHERE i.status NOT IN ('rented', 'retired')
+    AND NOT EXISTS (
+      SELECT 1 FROM inventory_expected e WHERE e.session_id = s.id AND e.item_id = i.id
+    )
+`).run();
+
+db.prepare(`
+  INSERT INTO payments (order_id, amount, type, method, created_at)
+  SELECT o.id, o.deposit, 'deposit', 'cash', o.started_at
+  FROM orders o
+  WHERE o.deposit > 0
+    AND NOT EXISTS (
+      SELECT 1 FROM payments p WHERE p.order_id = o.id AND p.type = 'deposit'
+    )
+`).run();
+
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('deposit_enabled', '1')").run();
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('deposit_default', '0')").run();
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('return_grace_enabled', '1')").run();
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('label_show_biz', '1')").run();
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('label_show_site', '1')").run();
+db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('label_site', '')").run();
+db.prepare("DELETE FROM settings WHERE key = 'return_grace_hours'").run();
 
 const now = () => db.prepare("SELECT datetime('now','localtime') AS t").get().t;
 

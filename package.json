@@ -4,8 +4,12 @@
   "private": true,
   "description": "Локальное ПО для проката горнолыжного инвентаря",
   "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
@@ -13,6 +17,6 @@
     "express": "^4.19.2"
   },
   "allowScripts": {
-    "better-sqlite3@11.10.0": true
+    "better-sqlite3@13.0.3": true
   }
 }

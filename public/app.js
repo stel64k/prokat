@@ -1,362 +1,55 @@
-const state = {
+﻿const state = {
   categories: [],
   pricings: [],
   settings: {},
   tab: 'issue',
-  draft: { client: null, clientName: '', lines: [], planned_end: '', deposit: null, notes: '' },
+  currentUser: null,
+  authMode: null,
+  draft: { client: null, clientName: '', lines: [], planned_end: '', deposit: null, deposit_method: 'cash', notes: '' },
   receiveOrderId: null,
   invSessionId: null
 };
 
 const CAT_ICONS = { 'Лыжи': 'Л', 'Сноуборд': 'Д', 'Ботинки': 'Б', 'Крепления': 'К', 'Палки': 'П', 'Шлем': 'Ш', 'Маска': 'М' };
 
-const I18N = {
-  ru: {
-    app_title: 'Прокат', lang_name: 'Русский', tab_issue: 'Выдача', tab_receive: 'Приёмка', tab_orders: 'Заказы', tab_inv: 'Склад',
-    tab_invcheck: 'Инвентаризация', tab_clients: 'Клиенты', tab_rates: 'Тарифы', tab_reports: 'Отчёты', tab_settings: 'Настройки',
-    srv_err: 'Ошибка сервера', popup_blocked: 'Разрешите всплывающие окна',
-    st_in_stock: 'На складе', st_rented: 'Выдан', st_service: 'Ремонт', st_retired: 'Списан',
-    st_active: 'Активен', st_returned: 'Возвращён', st_canceled: 'Отменён',
-    scanned: 'Сканировано: {code}', not_found: 'Не найдено: {code}', not_found_plain: 'Не найдено',
-    item_rented: 'Предмет «{bc}» уже выдан', item_service: 'Предмет «{bc}» в ремонте', item_retired: 'Предмет «{bc}» списан',
-    already_added: 'Уже добавлено в заказ: {bc}', added: 'Добавлено: {bc}', added_full: 'Добавлено: {v}',
-    not_rented: 'Предмет {code} не в аренде', start_inv_session: 'Начните сессию инвентаризации', scanned_inv: 'Отсканировано: {v}',
-    service_label: 'услуга', auto_pick: 'подбор', specific: 'конкретный', remove: 'Убрать',
-    issue_empty_hint: 'Сканируйте предмет или добавьте категорию/услугу ниже.',
-    issue_title: 'Выдача инвентаря', overdue_warn: 'Просрочены возвраты: {ids}',
-    client: 'Клиент', client_search_ph: 'ФИО или телефон — поиск', pick_from_db: 'Выбрать из базы', new_client: 'Новый клиент',
-    order_positions: 'Позиции заказа', kit_opt: 'Комплект…', category_opt: 'Отдельная категория…',
-    pick_item: 'Выбрать конкретный предмет', service_opt: 'Услуга…', issue_scan_hint: 'Наведите сканер и считайте штрихкод предмета — он добавится в заказ.',
-    planned_return: 'Планируемый возврат', deposit: 'Залог', comment: 'Комментарий', comment_ph: 'при необходимости',
-    create_order: 'Оформить выдачу', active_orders: 'Активные заказы',
-    cost_est: 'Стоимость (оценочно): {v}', deposit_val: 'Залог: {v}', pay_at_issue: 'При выдаче: {v}',
-    no_active_orders: 'Активных заказов нет', overdue_badge: 'просрочка', not_returned_count: 'не сдано: {n}', receive_btn: 'Принять',
-    found: 'Найдено: {names}',
-    client_pick_title: 'Выбор клиента', search_ph: 'поиск', choose: 'Выбрать',
-    pick_item_search_ph: 'поиск: тип, модель, размер, штрихкод', no_stock: 'Нет предметов на складе',
-    select_client: 'Выберите клиента', select_return_date: 'Укажите срок возврата', add_lines: 'Добавьте позиции', order_created: 'Заказ #{id} создан', order_title: 'Заказ #{id}',
-    print_contract: 'Печать договора', add_payment: 'Внести оплату', close: 'Закрыть',
-    client_label: 'Клиент: {name}', issue_return_plan: 'Выдача: {t} &nbsp; Возврат план: {t2}',
-    position: 'Позиция', units_barcode: 'Единицы (штрихкод)', amount: 'Сумма', total: 'Итого',
-    deposit_paid: 'Залог / оплачено', to_charge: 'К доплате: {v}',
-    contract_title_short: 'Договор #{id}', contract_title: 'Договор проката № {id}',
-    phone_label: 'Телефон:', issue_date: 'Дата выдачи:', return_plan: 'Возврат (план):',
-    deposit_label: 'Залог:', comment_label: 'Комментарий:', kind: 'Тип', issued_barcodes: 'Штрихкоды выданного',
-    estimated_cost: 'Предварительная стоимость: {v}', contract_disclaimer: 'Окончательная стоимость рассчитывается при возврате по фактическому времени. За повреждение или утерю инвентаря клиент несёт материальную ответственность.',
-    sign_client: 'Клиент', sign_manager: 'Менеджер',
-    receive_title: 'Приёмка инвентаря', receive_sel_ph: 'Выберите активный заказ или сканируйте штрихкод',
-    overdue_bracket: '[просрочка]', refresh: 'Обновить', receive_scan_hint: 'Считайте штрихкод предмета — он будет отмечен как возвращённый, затем укажите состояние.',
-    select_order_above: 'Выберите заказ выше.', returned_at: 'сдано {t}', damage: 'повреждение',
-    order_for: 'Заказ #{id} — {name}', issue_at: 'Выдача:', return_plan_at: 'План возврата:',
-    returned_ratio: 'сдано {a} / {b}', units: 'Единицы', all_returned_total: 'Все предметы сданы. Итого: {v}',
-    paid: 'Оплачено', to_refund: 'Возврат залога/сдачи: {v}', pay_refund: 'Оплата / возврат',
-    plan_cost: 'По плану: {v}', actual_cost: 'По факту (на текущую дату): {v}', late_fee_badge: 'штраф за просрочку: {v}', received_label: 'Получено: {v}',
-    close_order: 'Закрыть заказ', print_receipt: 'Печать квитанции',
-    item_condition: 'Состояние предмета', condition_hint: 'Предмет возвращён. Укажите состояние.',
-    ok_cond: 'В порядке', cancel: 'Отмена', damage_desc: 'Описание повреждения', record: 'Зафиксировать',
-    accepted: 'Принято', damage_recorded: 'Повреждение зафиксировано', order_closed: 'Заказ #{id} закрыт', order_closed_total: 'Заказ #{id} закрыт. Итого: {v}',
-    payment_order: 'Платёж — заказ #{id}', payment_summary: 'Итого: {v} · Залог: {d} · Оплачено: {p} · Возвраты: {r}',
-    pay: 'Оплата', refund_type: 'Возврат (залога/сдачи)', method: 'Способ', cash: 'Наличные', card: 'Карта',
-    save: 'Сохранить', saved: 'Сохранено',
-    orders_title: 'Заказы', search_number_ph: 'поиск по номеру', num: '№', client_col: 'Клиент',
-    issue_col: 'Выдача', plan_return_col: 'План возврата', status_col: 'Статус', deposit_col: 'Залог',
-    payments: 'Платежи', date: 'Дата', no_payments: 'нет платежей', print: 'Печать', payment: 'Платёж', cancel_order_btn: 'Отменить',
-    cancel_confirm: 'Отменить заказ #{id}?',
-    receipt_title_short: 'Квитанция #{id}', receipt_title: 'Квитанция № {id}', return_at: 'Возврат:',
-    stock_title: 'Склад', in_stock_count: 'На складе: {n}', rented_count: 'Выдано: {n}', service_count: 'Ремонт: {n}',
-    total_count: 'Всего: {n}', inv_search_ph: 'поиск: штрихкод, модель, размер', all_categories: 'Все категории',
-    add_item: 'Добавить инвентарь', print_labels: 'Печать этикеток', barcode: 'Штрихкод', type: 'Тип',
-    model: 'Модель', size: 'Размер', condition: 'Состояние', label: 'Этикетка', edit: 'Изменить', retire: 'Списать',
-    print_all_labels_confirm: 'Печатать этикетки для всех {n} предметов на складе?',
-    category: 'Категория', count: 'Количество', brand: 'Бренд', size_full: 'Размер / длина / ростовка',
-    barcode_auto: 'Штрихкод (назначается автоматически)', barcode_next_title: 'Следующий после последнего в базе',
-    notes: 'Примечание', add: 'Добавить', added_count: 'Добавлено {n}',
-    edit_item: 'Изменить {bc}', status: 'Статус', retire_confirm: 'Списать {bc} ({model})?', retired_done: 'Списано',
-    session_active: 'Сессия #{id} — активна', inv_session_hint: 'Сканируйте штрихкоды предметов. Счёт: {s} из {exp}',
-    expected: 'Ожидается', scanned: 'Отсканировано', missing: 'Не хватает',
-    finish_show_missing: 'Завершить и показать не найденные', new_inventory: 'Новая инвентаризация',
-    inv_note_ph: 'например: конец сезона', start: 'Начать', session_history: 'История сессий',
-    finished: 'завершена', in_progress: 'в процессе', report: 'Отчёт', no_sessions: 'Пока нет сессий',
-    session_started: 'Сессия #{id} начата. Сканируйте инвентарь.',
-    inventory_title: 'Инвентаризация #{id}', missing_count: 'Не найдены ({n})', finish_session: 'Завершить сессию',
-    continue_btn: 'Продолжить', completed: 'Завершено', inv_report_title: 'Инвентаризация #{id} — отчёт',
-    not_finished: 'не завершена', inv_report_no: 'Инвентаризация № {id} · {t}', conducted: 'Провёл', approved: 'Утвердил',
-    clients_title: 'Клиенты', full_name: 'ФИО', phone_col: 'Телефон', doc_col: 'Документ',
-    name_ph: 'Иванов Иван Иванович', phone_ph: '+380...', doc_ph: 'паспорт/ID', create: 'Создать',
-    enter_name: 'Введите ФИО', client_added: 'Клиент добавлен', client_selected: 'Клиент выбран',
-    client_name_title: 'Клиент: {name}', client_info_line: 'Телефон: {phone} · Документ: {doc}',
-    order_history: 'История заказов', no_orders: 'нет заказов', edit_client: 'Изменить клиента',
-    rates_title: 'Тарифы и услуги', new_rate: 'Новый тариф',
-    rate_intervals_hint: 'Интервал времени: < 24 ч — по часовая ставка; ≥ 24 ч — по суточной (если задана недельная — начиная с 6 суток).',
-    kits: 'Комплекты', name: 'Название', composition: 'Состав', price_day_col: 'Цена/сутки',
-    kit_auto_hint: 'Автоподбор: если в заказе есть все позиции из состава, цена берётся как за комплект (дешевле, чем по отдельности).',
-    categories_title: 'Категории (за единицу)', hour: 'Час', day: 'Сутки', services: 'Услуги', price: 'Цена',
-    per_unit: 'за единицу инвентаря', edit_short: 'Изм.', del_short: 'Уд.', edit_rate: 'Изменить тариф',
-    kit: 'Комплект', category_per_unit: 'Категория (за единицу)', service_fixed: 'Услуга (фикс.)',
-    kit_composition: 'Состав комплекта', optional_short: 'необяз.', add_position: '+ позиция',
-    hour_grn: 'Час (грн)', day_grn: 'Сутки (грн)', week_grn: 'Неделя (грн)', season_grn: 'Сезон (грн)',
-    flat_price_grn: 'Фиксированная цена (грн, для услуги)', delete_rate_confirm: 'Удалить тариф?',
-    reports_title: 'Отчёты', from_date: 'С', to_date: 'По', show: 'Показать',
-    cash_badge: 'Наличные: {v}', card_badge: 'Карта: {v}', total_received_badge: 'Итого поступило: {v}',
-    refunds_badge: 'Возвраты: {v}', no_data: 'нет данных', daily_income: 'Поступления по дням',
-    received_income: 'Поступило', refund_income: 'Возврат', utilization_top: 'Оборот инвентаря (топ)',
-    rentals: 'Сдач', orders_period: 'Заказы за период', received_col: 'Получено', returned_col: 'Возвращено',
-    settings_title: 'Настройки', biz_name_label: 'Название организации (в договорах)', currency_label: 'Валюта',
-    default_deposit_label: 'Залог по умолчанию (грн)', late_fee_label: 'Штраф за просрочку (грн/сутки)',
-    contractor_label: 'Контрагент / адрес', contract_phone_label: 'Телефон в договоре',
-    backup: 'Резервная копия', backup_hint: 'База хранится в папке <span class="mono">data/prokat.db</span> рядом с приложением. Для бэкапа копируйте этот файл.',
-    download_backup: 'Скачать копию базы', init_err: 'Ошибка инициализации: {e}'
-  },
-  uk: {
-    app_title: 'Прокат', lang_name: 'Українська', tab_issue: 'Видача', tab_receive: 'Приймання', tab_orders: 'Замовлення', tab_inv: 'Склад',
-    tab_invcheck: 'Інвентаризація', tab_clients: 'Клієнти', tab_rates: 'Тарифи', tab_reports: 'Звіти', tab_settings: 'Налаштування',
-    srv_err: 'Помилка сервера', popup_blocked: 'Дозвольте спливаючі вікна',
-    st_in_stock: 'На складі', st_rented: 'Видано', st_service: 'Ремонт', st_retired: 'Списано',
-    st_active: 'Активний', st_returned: 'Повернуто', st_canceled: 'Скасовано',
-    scanned: 'Відскановано: {code}', not_found: 'Не знайдено: {code}', not_found_plain: 'Не знайдено',
-    item_rented: 'Предмет «{bc}» уже видано', item_service: 'Предмет «{bc}» у ремонті', item_retired: 'Предмет «{bc}» списано',
-    already_added: 'Вже додано до замовлення: {bc}', added: 'Додано: {bc}', added_full: 'Додано: {v}',
-    not_rented: 'Предмет {code} не в оренді', start_inv_session: 'Почніть сесію інвентаризації', scanned_inv: 'Відскановано: {v}',
-    service_label: 'послуга', auto_pick: 'підбір', specific: 'конкретний', remove: 'Прибрати',
-    issue_empty_hint: 'Відскануйте предмет або додайте категорію/послугу нижче.',
-    issue_title: 'Видача інвентарю', overdue_warn: 'Прострочено повернення: {ids}',
-    client: 'Клієнт', client_search_ph: 'ПІБ або телефон — пошук', pick_from_db: 'Вибрати з бази', new_client: 'Новий клієнт',
-    order_positions: 'Позиції замовлення', kit_opt: 'Комплект…', category_opt: 'Окрема категорія…',
-    pick_item: 'Вибрати конкретний предмет', service_opt: 'Послуга…', issue_scan_hint: 'Наведіть сканер на штрихкод предмета — він додасться до замовлення.',
-    planned_return: 'Плановане повернення', deposit: 'Застава', comment: 'Коментар', comment_ph: 'за потреби',
-    create_order: 'Оформити видачу', active_orders: 'Активні замовлення',
-    cost_est: 'Вартість (оціночно): {v}', deposit_val: 'Застава: {v}', pay_at_issue: 'При видачі: {v}',
-    no_active_orders: 'Активних замовлень немає', overdue_badge: 'прострочено', not_returned_count: 'не здано: {n}', receive_btn: 'Прийняти',
-    found: 'Знайдено: {names}',
-    client_pick_title: 'Вибір клієнта', search_ph: 'пошук', choose: 'Вибрати',
-    pick_item_search_ph: 'пошук: тип, модель, розмір, штрихкод', no_stock: 'Немає предметів на складі',
-    select_client: 'Виберіть клієнта', select_return_date: 'Вкажіть строк повернення', add_lines: 'Додайте позиції', order_created: 'Замовлення #{id} створено', order_title: 'Замовлення #{id}',
-    print_contract: 'Друк договору', add_payment: 'Внести оплату', close: 'Закрити',
-    client_label: 'Клієнт: {name}', issue_return_plan: 'Видача: {t} &nbsp; Повернення план: {t2}',
-    position: 'Позиція', units_barcode: 'Одиниці (штрихкод)', amount: 'Сума', total: 'Разом',
-    deposit_paid: 'Застава / оплачено', to_charge: 'До доплати: {v}',
-    contract_title_short: 'Договір #{id}', contract_title: 'Договір прокату № {id}',
-    phone_label: 'Телефон:', issue_date: 'Дата видачі:', return_plan: 'Повернення (план):',
-    deposit_label: 'Застава:', comment_label: 'Коментар:', kind: 'Тип', issued_barcodes: 'Штрихкоди виданого',
-    estimated_cost: 'Попередня вартість: {v}', contract_disclaimer: 'Остаточна вартість розраховується при поверненні за фактичним часом. За пошкодження або втрату інвентарю клієнт несе матеріальну відповідальність.',
-    sign_client: 'Клієнт', sign_manager: 'Менеджер',
-    receive_title: 'Приймання інвентарю', receive_sel_ph: 'Виберіть активне замовлення або скануйте штрихкод',
-    overdue_bracket: '[прострочено]', refresh: 'Оновити', receive_scan_hint: 'Скануйте штрихкод предмета — його буде позначено як повернутий, потім укажіть стан.',
-    select_order_above: 'Виберіть замовлення вище.', returned_at: 'здано {t}', damage: 'пошкодження',
-    order_for: 'Замовлення #{id} — {name}', issue_at: 'Видача:', return_plan_at: 'План повернення:',
-    returned_ratio: 'здано {a} / {b}', units: 'Одиниці', all_returned_total: 'Усі предмети здано. Разом: {v}',
-    paid: 'Оплачено', to_refund: 'Повернення застави/решти: {v}', pay_refund: 'Оплата / повернення',
-    plan_cost: 'За планом: {v}', actual_cost: 'За фактом (на поточну дату): {v}', late_fee_badge: 'штраф за прострочення: {v}', received_label: 'Отримано: {v}',
-    close_order: 'Закрити замовлення', print_receipt: 'Друк квитанції',
-    item_condition: 'Стан предмета', condition_hint: 'Предмет повернуто. Укажіть стан.',
-    ok_cond: 'У порядку', cancel: 'Скасувати', damage_desc: 'Опис пошкодження', record: 'Зафіксувати',
-    accepted: 'Прийнято', damage_recorded: 'Пошкодження зафіксовано', order_closed: 'Замовлення #{id} закрито', order_closed_total: 'Замовлення #{id} закрито. Разом: {v}',
-    payment_order: 'Платіж — замовлення #{id}', payment_summary: 'Разом: {v} · Застава: {d} · Оплачено: {p} · Повернення: {r}',
-    pay: 'Оплата', refund_type: 'Повернення (застави/решти)', method: 'Спосіб', cash: 'Готівка', card: 'Картка',
-    save: 'Зберегти', saved: 'Збережено',
-    orders_title: 'Замовлення', search_number_ph: 'пошук за номером', num: '№', client_col: 'Клієнт',
-    issue_col: 'Видача', plan_return_col: 'План повернення', status_col: 'Статус', deposit_col: 'Застава',
-    payments: 'Платежі', date: 'Дата', no_payments: 'немає платежів', print: 'Друк', payment: 'Платіж', cancel_order_btn: 'Скасувати',
-    cancel_confirm: 'Скасувати замовлення #{id}?',
-    receipt_title_short: 'Квитанція #{id}', receipt_title: 'Квитанція № {id}', return_at: 'Повернення:',
-    stock_title: 'Склад', in_stock_count: 'На складі: {n}', rented_count: 'Видано: {n}', service_count: 'Ремонт: {n}',
-    total_count: 'Всього: {n}', inv_search_ph: 'пошук: штрихкод, модель, розмір', all_categories: 'Всі категорії',
-    add_item: 'Додати інвентар', print_labels: 'Друк етикеток', barcode: 'Штрихкод', type: 'Тип',
-    model: 'Модель', size: 'Розмір', condition: 'Стан', label: 'Етикетка', edit: 'Змінити', retire: 'Списати',
-    print_all_labels_confirm: 'Друкувати етикетки для всіх {n} предметів на складі?',
-    category: 'Категорія', count: 'Кількість', brand: 'Бренд', size_full: 'Розмір / довжина / ростовка',
-    barcode_auto: 'Штрихкод (призначається автоматично)', barcode_next_title: 'Наступний після останнього в базі',
-    notes: 'Примітка', add: 'Додати', added_count: 'Додано {n}',
-    edit_item: 'Змінити {bc}', status: 'Статус', retire_confirm: 'Списати {bc} ({model})?', retired_done: 'Списано',
-    session_active: 'Сесія #{id} — активна', inv_session_hint: 'Скануйте штрихкоди предметів. Лічильник: {s} з {exp}',
-    expected: 'Очікується', scanned: 'Відскановано', missing: 'Бракує',
-    finish_show_missing: 'Завершити і показати не знайдені', new_inventory: 'Нова інвентаризація',
-    inv_note_ph: 'наприклад: кінець сезону', start: 'Почати', session_history: 'Історія сесій',
-    finished: 'завершено', in_progress: 'в процесі', report: 'Звіт', no_sessions: 'Поки немає сесій',
-    session_started: 'Сесію #{id} розпочато. Скануйте інвентар.',
-    inventory_title: 'Інвентаризація #{id}', missing_count: 'Не знайдено ({n})', finish_session: 'Завершити сесію',
-    continue_btn: 'Продовжити', completed: 'Завершено', inv_report_title: 'Інвентаризація #{id} — звіт',
-    not_finished: 'не завершена', inv_report_no: 'Інвентаризація № {id} · {t}', conducted: 'Провів', approved: 'Затвердив',
-    clients_title: 'Клієнти', full_name: 'ПІБ', phone_col: 'Телефон', doc_col: 'Документ',
-    name_ph: 'Іванов Іван Іванович', phone_ph: '+380...', doc_ph: 'паспорт/ID', create: 'Створити',
-    enter_name: 'Введіть ПІБ', client_added: 'Клієнта додано', client_selected: 'Клієнта вибрано',
-    client_name_title: 'Клієнт: {name}', client_info_line: 'Телефон: {phone} · Документ: {doc}',
-    order_history: 'Історія замовлень', no_orders: 'немає замовлень', edit_client: 'Змінити клієнта',
-    rates_title: 'Тарифи та послуги', new_rate: 'Новий тариф',
-    rate_intervals_hint: 'Інтервал часу: < 24 год — погодинна ставка; ≥ 24 год — добова (якщо задана тижнева — починаючи з 6 діб).',
-    kits: 'Комплекти', name: 'Назва', composition: 'Склад', price_day_col: 'Ціна/доба',
-    kit_auto_hint: 'Автопідбір: якщо в замовленні є всі позиції зі складу, ціна береться як за комплект (дешевше, ніж окремо).',
-    categories_title: 'Категорії (за одиницю)', hour: 'Година', day: 'Доба', services: 'Послуги', price: 'Ціна',
-    per_unit: 'за одиницю інвентарю', edit_short: 'Зм.', del_short: 'Вид.', edit_rate: 'Змінити тариф',
-    kit: 'Комплект', category_per_unit: 'Категорія (за одиницю)', service_fixed: 'Послуга (фікс.)',
-    kit_composition: 'Склад комплекту', optional_short: 'необов.', add_position: '+ позиція',
-    hour_grn: 'Година (грн)', day_grn: 'Доба (грн)', week_grn: 'Тиждень (грн)', season_grn: 'Сезон (грн)',
-    flat_price_grn: 'Фіксована ціна (грн, для послуги)', delete_rate_confirm: 'Видалити тариф?',
-    reports_title: 'Звіти', from_date: 'З', to_date: 'По', show: 'Показати',
-    cash_badge: 'Готівка: {v}', card_badge: 'Картка: {v}', total_received_badge: 'Разом надійшло: {v}',
-    refunds_badge: 'Повернення: {v}', no_data: 'немає даних', daily_income: 'Надходження по днях',
-    received_income: 'Надійшло', refund_income: 'Повернення', utilization_top: 'Оборот інвентарю (топ)',
-    rentals: 'Здач', orders_period: 'Замовлення за період', received_col: 'Отримано', returned_col: 'Повернуто',
-    settings_title: 'Налаштування', biz_name_label: 'Назва організації (у договорах)', currency_label: 'Валюта',
-    default_deposit_label: 'Застава за замовчуванням (грн)', late_fee_label: 'Штраф за прострочення (грн/доба)',
-    contractor_label: 'Контрагент / адреса', contract_phone_label: 'Телефон у договорі',
-    backup: 'Резервна копія', backup_hint: 'База зберігається в папці <span class="mono">data/prokat.db</span> поруч із застосунком. Для бекапу копіюйте цей файл.',
-    download_backup: 'Завантажити копію бази', init_err: 'Помилка ініціалізації: {e}'
-  },
-  en: {
-    app_title: 'Rental', lang_name: 'English', tab_issue: 'Issue', tab_receive: 'Return', tab_orders: 'Orders', tab_inv: 'Stock',
-    tab_invcheck: 'Inventory', tab_clients: 'Clients', tab_rates: 'Rates', tab_reports: 'Reports', tab_settings: 'Settings',
-    srv_err: 'Server error', popup_blocked: 'Allow pop-up windows',
-    st_in_stock: 'In stock', st_rented: 'Issued', st_service: 'Repair', st_retired: 'Retired',
-    st_active: 'Active', st_returned: 'Returned', st_canceled: 'Canceled',
-    scanned: 'Scanned: {code}', not_found: 'Not found: {code}', not_found_plain: 'Not found',
-    item_rented: 'Item «{bc}» is already issued', item_service: 'Item «{bc}» is in repair', item_retired: 'Item «{bc}» is retired',
-    already_added: 'Already added to order: {bc}', added: 'Added: {bc}', added_full: 'Added: {v}',
-    not_rented: 'Item {code} is not on rent', start_inv_session: 'Start an inventory session', scanned_inv: 'Scanned: {v}',
-    service_label: 'service', auto_pick: 'auto', specific: 'specific', remove: 'Remove',
-    issue_empty_hint: 'Scan an item or add a category/service below.',
-    issue_title: 'Issue equipment', overdue_warn: 'Overdue returns: {ids}',
-    client: 'Client', client_search_ph: 'Name or phone — search', pick_from_db: 'Pick from base', new_client: 'New client',
-    order_positions: 'Order items', kit_opt: 'Kit…', category_opt: 'Single category…',
-    pick_item: 'Pick a specific item', service_opt: 'Service…', issue_scan_hint: 'Point the scanner at the item barcode — it will be added to the order.',
-    planned_return: 'Planned return', deposit: 'Deposit', comment: 'Comment', comment_ph: 'if needed',
-    create_order: 'Issue order', active_orders: 'Active orders',
-    cost_est: 'Cost (estimate): {v}', deposit_val: 'Deposit: {v}', pay_at_issue: 'To pay at issue: {v}',
-    no_active_orders: 'No active orders', overdue_badge: 'overdue', not_returned_count: 'not returned: {n}', receive_btn: 'Accept',
-    found: 'Found: {names}',
-    client_pick_title: 'Pick client', search_ph: 'search', choose: 'Choose',
-    pick_item_search_ph: 'search: type, model, size, barcode', no_stock: 'No items in stock',
-    select_client: 'Select a client', select_return_date: 'Set the return date', add_lines: 'Add items', order_created: 'Order #{id} created', order_title: 'Order #{id}',
-    print_contract: 'Print contract', add_payment: 'Add payment', close: 'Close',
-    client_label: 'Client: {name}', issue_return_plan: 'Issued: {t} &nbsp; Return plan: {t2}',
-    position: 'Item', units_barcode: 'Units (barcode)', amount: 'Amount', total: 'Total',
-    deposit_paid: 'Deposit / paid', to_charge: 'To pay extra: {v}',
-    contract_title_short: 'Contract #{id}', contract_title: 'Rental contract № {id}',
-    phone_label: 'Phone:', issue_date: 'Issue date:', return_plan: 'Return (plan):',
-    deposit_label: 'Deposit:', comment_label: 'Comment:', kind: 'Type', issued_barcodes: 'Issued barcodes',
-    estimated_cost: 'Estimated cost: {v}', contract_disclaimer: 'The final cost is calculated at return based on actual time. The client is financially responsible for damage or loss of equipment.',
-    sign_client: 'Client', sign_manager: 'Manager',
-    receive_title: 'Return equipment', receive_sel_ph: 'Select an active order or scan a barcode',
-    overdue_bracket: '[overdue]', refresh: 'Refresh', receive_scan_hint: 'Scan an item barcode — it will be marked as returned, then specify its condition.',
-    select_order_above: 'Select an order above.', returned_at: 'returned {t}', damage: 'damage',
-    order_for: 'Order #{id} — {name}', issue_at: 'Issued:', return_plan_at: 'Return plan:',
-    returned_ratio: 'returned {a} / {b}', units: 'Units', all_returned_total: 'All items returned. Total: {v}',
-    paid: 'Paid', to_refund: 'Refund deposit/change: {v}', pay_refund: 'Payment / refund',
-    plan_cost: 'Planned: {v}', actual_cost: 'Actual (as of today): {v}', late_fee_badge: 'late fee: {v}', received_label: 'Received: {v}',
-    close_order: 'Close order', print_receipt: 'Print receipt',
-    item_condition: 'Item condition', condition_hint: 'Item returned. Specify its condition.',
-    ok_cond: 'OK', cancel: 'Cancel', damage_desc: 'Damage description', record: 'Record',
-    accepted: 'Accepted', damage_recorded: 'Damage recorded', order_closed: 'Order #{id} closed', order_closed_total: 'Order #{id} closed. Total: {v}',
-    payment_order: 'Payment — order #{id}', payment_summary: 'Total: {v} · Deposit: {d} · Paid: {p} · Refunds: {r}',
-    pay: 'Payment', refund_type: 'Refund (deposit/change)', method: 'Method', cash: 'Cash', card: 'Card',
-    save: 'Save', saved: 'Saved',
-    orders_title: 'Orders', search_number_ph: 'search by number', num: '№', client_col: 'Client',
-    issue_col: 'Issue', plan_return_col: 'Return plan', status_col: 'Status', deposit_col: 'Deposit',
-    payments: 'Payments', date: 'Date', no_payments: 'no payments', print: 'Print', payment: 'Payment', cancel_order_btn: 'Cancel',
-    cancel_confirm: 'Cancel order #{id}?',
-    receipt_title_short: 'Receipt #{id}', receipt_title: 'Receipt № {id}', return_at: 'Return:',
-    stock_title: 'Stock', in_stock_count: 'In stock: {n}', rented_count: 'Issued: {n}', service_count: 'Repair: {n}',
-    total_count: 'Total: {n}', inv_search_ph: 'search: barcode, model, size', all_categories: 'All categories',
-    add_item: 'Add item', print_labels: 'Print labels', barcode: 'Barcode', type: 'Type',
-    model: 'Model', size: 'Size', condition: 'Condition', label: 'Label', edit: 'Edit', retire: 'Retire',
-    print_all_labels_confirm: 'Print labels for all {n} items in stock?',
-    category: 'Category', count: 'Quantity', brand: 'Brand', size_full: 'Size / length',
-    barcode_auto: 'Barcode (auto-assigned)', barcode_next_title: 'Next after the last one in the database',
-    notes: 'Notes', add: 'Add', added_count: 'Added {n}',
-    edit_item: 'Edit {bc}', status: 'Status', retire_confirm: 'Retire {bc} ({model})?', retired_done: 'Retired',
-    session_active: 'Session #{id} — active', inv_session_hint: 'Scan item barcodes. Count: {s} of {exp}',
-    expected: 'Expected', scanned: 'Scanned', missing: 'Missing',
-    finish_show_missing: 'Finish and show missing', new_inventory: 'New inventory',
-    inv_note_ph: 'e.g. end of season', start: 'Start', session_history: 'Session history',
-    finished: 'finished', in_progress: 'in progress', report: 'Report', no_sessions: 'No sessions yet',
-    session_started: 'Session #{id} started. Scan items.',
-    inventory_title: 'Inventory #{id}', missing_count: 'Not found ({n})', finish_session: 'Finish session',
-    continue_btn: 'Continue', completed: 'Completed', inv_report_title: 'Inventory #{id} — report',
-    not_finished: 'not finished', inv_report_no: 'Inventory № {id} · {t}', conducted: 'Conducted by', approved: 'Approved by',
-    clients_title: 'Clients', full_name: 'Full name', phone_col: 'Phone', doc_col: 'Document',
-    name_ph: 'John Doe', phone_ph: '+380...', doc_ph: 'passport/ID', create: 'Create',
-    enter_name: 'Enter full name', client_added: 'Client added', client_selected: 'Client selected',
-    client_name_title: 'Client: {name}', client_info_line: 'Phone: {phone} · Document: {doc}',
-    order_history: 'Order history', no_orders: 'no orders', edit_client: 'Edit client',
-    rates_title: 'Rates and services', new_rate: 'New rate',
-    rate_intervals_hint: 'Time interval: < 24 h — hourly rate; ≥ 24 h — daily rate (weekly rate applies from 6 days).',
-    kits: 'Kits', name: 'Name', composition: 'Composition', price_day_col: 'Price/day',
-    kit_auto_hint: 'Auto-applied: if the order contains all items in the composition, the price is billed as a bundle (cheaper than separately).',
-    categories_title: 'Categories (per unit)', hour: 'Hour', day: 'Day', services: 'Services', price: 'Price',
-    per_unit: 'per unit of equipment', edit_short: 'Edit', del_short: 'Del.', edit_rate: 'Edit rate',
-    kit: 'Kit', category_per_unit: 'Category (per unit)', service_fixed: 'Service (fixed)',
-    kit_composition: 'Kit composition', optional_short: 'opt.', add_position: '+ item',
-    hour_grn: 'Hour (uah)', day_grn: 'Day (uah)', week_grn: 'Week (uah)', season_grn: 'Season (uah)',
-    flat_price_grn: 'Fixed price (uah, for services)', delete_rate_confirm: 'Delete rate?',
-    reports_title: 'Reports', from_date: 'From', to_date: 'To', show: 'Show',
-    cash_badge: 'Cash: {v}', card_badge: 'Card: {v}', total_received_badge: 'Total received: {v}',
-    refunds_badge: 'Refunds: {v}', no_data: 'no data', daily_income: 'Daily income',
-    received_income: 'Received', refund_income: 'Refund', utilization_top: 'Equipment turnover (top)',
-    rentals: 'Rentals', orders_period: 'Orders for period', received_col: 'Received', returned_col: 'Returned',
-    settings_title: 'Settings', biz_name_label: 'Organization name (in contracts)', currency_label: 'Currency',
-    default_deposit_label: 'Default deposit (uah)', late_fee_label: 'Late fee (uah/day)',
-    contractor_label: 'Contractor / address', contract_phone_label: 'Phone in contract',
-    backup: 'Backup', backup_hint: 'The database is stored in <span class="mono">data/prokat.db</span> next to the app. Copy this file to back it up.',
-    download_backup: 'Download database copy', init_err: 'Initialization error: {e}'
-  }
-};
-
-let LANG = 'ru';
-try { LANG = localStorage.getItem('prokat_lang') || 'ru'; } catch (e) { /* ignore */ }
-const LANG_CODE = { uk: 'УКР', ru: 'РУС', en: 'ENG' };
-const LANG_ORDER = ['uk', 'ru', 'en'];
-
-function cycleLang() {
-  const i = LANG_ORDER.indexOf(LANG);
-  setLang(LANG_ORDER[(i < 0 ? 0 : i) + 1] || LANG_ORDER[0]);
+function categoryPricingForItem(it) {
+  return state.pricings.find((p) => p.kind === 'category' && p.category_id === it.category_id && p.active);
 }
 
-function t(k, vars) {
-  let s = (I18N[LANG] && I18N[LANG][k]) || I18N.ru[k] || k;
-  if (vars) for (const p in vars) s = s.split('{' + p + '}').join(String(vars[p]));
-  return s;
-}
-
-function setLang(l) {
-  if (!I18N[l]) return;
-  LANG = l;
-  try { localStorage.setItem('prokat_lang', l); } catch (e) { /* ignore */ }
-  document.documentElement.lang = l === 'ru' ? 'ru' : l === 'uk' ? 'uk' : 'en';
-  const btn = $('#lang-btn');
-  if (btn) { btn.textContent = LANG_CODE[l]; btn.title = I18N[l].lang_name; }
-  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  const biz = (state.settings && state.settings.business_name) || t('app_title');
-  const br = $('#brand');
-  if (br) br.textContent = biz;
-  document.title = biz;
-  if (state.tab) switchTab(state.tab);
-}
-
-const $ = (sel, root) => (root || document).querySelector(sel);
-const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
-
-async function api(url, opts) {
-  const res = await fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opts || {}));
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || t('srv_err'));
-  return data;
-}
-
-function toast(msg) {
-  const el = $('#toast');
-  el.textContent = msg;
-  el.style.display = 'block';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.style.display = 'none'; }, 2600);
-}
-
-function money(n) {
-  return (Math.round(n * 100) / 100).toFixed(2) + ' ' + (state.settings.currency || 'грн');
+async function ensureCategoryPricing(it) {
+  let pricing = categoryPricingForItem(it);
+  if (pricing) return pricing;
+  if (state.currentUser.role !== 'admin') throw new Error(t('no_category_rate'));
+  const created = await api('/api/pricings', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: it.cat_name, kind: 'category', category_id: it.category_id,
+      price_hour: 0, price_day: 250, price_flat: 0
+    })
+  });
+  pricing = { id: created.id, name: it.cat_name, kind: 'category', category_id: it.category_id, active: 1 };
+  state.pricings.push(pricing);
+  return pricing;
 }
 
 function fmtDT(str) {
-  if (!str) return '—';
-  return String(str).slice(0, 16).replace('T', ' ');
+  if (!str) return '-';
+  const s = String(str);
+  if (s.includes('T')) {
+    const [d, t] = s.slice(0, 16).split('T');
+    const [y, m, day] = d.split('-');
+    return y && m && day ? `${day}.${m}.${y} ${t}` : s.slice(0, 16).replace('T', ' ');
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) {
+    const [d, t] = s.split(' ');
+    const [y, m, day] = d.split('-');
+    return `${day}.${m}.${y} ${t.slice(0,5)}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, day] = s.split('-');
+    return `${day}.${m}.${y}`;
+  }
+  return s.slice(0, 16);
 }
 
 function nowLocalInput() {
@@ -380,16 +73,55 @@ function pricingActive(kind) {
 
 function openModal(title, bodyHtml) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal"><button class="close">&times;</button><h2>${esc(title)}</h2><div class="body">${bodyHtml}</div></div>`;
+  state.modalReturnFocus = document.activeElement;
+  const titleId = 'modal-title-' + Date.now();
+  root.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}"><button class="close" type="button" aria-label="${esc(t('close'))}">&times;</button><h2 id="${titleId}">${esc(title)}</h2><div class="body">${bodyHtml}</div></div>`;
   $('.close', root).onclick = closeModal;
   root.classList.add('open');
+  wireLabels(root);
+  const focusTarget = $('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not(.close)', root)
+    || $('.close', root);
+  if (focusTarget) focusTarget.focus();
   return $('.modal .body', root);
 }
 
 function closeModal() {
   $('#modal-root').classList.remove('open');
   $('#modal-root').innerHTML = '';
+  if (state.modalReturnFocus && state.modalReturnFocus.isConnected) state.modalReturnFocus.focus();
+  state.modalReturnFocus = null;
 }
+
+function wireLabels(root) {
+  $$('label', root).forEach((label) => {
+    if (label.control || label.htmlFor) return;
+    const control = label.nextElementSibling;
+    if (!control || !control.matches('input,select,textarea')) return;
+    if (!control.id) control.id = 'field-' + Math.random().toString(36).slice(2, 10);
+    label.htmlFor = control.id;
+  });
+}
+
+window.addEventListener('keydown', (event) => {
+  const root = $('#modal-root');
+  if (!root.classList.contains('open')) return;
+  if (event.key === 'Escape') { closeModal(); return; }
+  if (event.key === 'Tab') {
+    const focusable = $$('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]', root);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+});
+
+const labelObserver = new MutationObserver((records) => {
+  records.forEach((record) => record.addedNodes.forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) wireLabels(node);
+  }));
+});
+labelObserver.observe(document.body, { childList: true, subtree: true });
 
 function confirmAction(msg) {
   return window.confirm(msg);
@@ -421,7 +153,70 @@ function statusBadge(s) {
   return `<span class="badge ${esc(s)}">${esc(map[s] || s)}</span>`;
 }
 
+function paymentStatusBadge(status) {
+  return `<span class="badge payment-${esc(status)}">${t('payment_status_' + status)}</span>`;
+}
+
 async function init() {
+  const auth = await api('/api/auth/status');
+  if (!auth.initialized) return renderAuth('setup');
+  if (!auth.user) return renderAuth('login');
+  state.currentUser = auth.user;
+  if (auth.user.must_change_password) return renderAuth('change');
+  await startApp();
+}
+
+function renderAuth(mode) {
+  state.authMode = mode;
+  document.documentElement.lang = LANG === 'ru' ? 'ru' : LANG === 'uk' ? 'uk' : 'en';
+  $('#app-shell').hidden = true;
+  const root = $('#auth-root');
+  root.hidden = false;
+  root.classList.add('auth-root');
+  const title = mode === 'setup' ? t('auth_setup_title') : mode === 'change' ? t('change_password_title') : t('auth_login_title');
+  const credentials = mode === 'setup' ? `
+    <label for="auth-username">${t('username')}</label><input id="auth-username" name="username" autocomplete="username" required minlength="3" maxlength="32">
+    <label for="auth-password">${t('password')}</label><input id="auth-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+    <label for="auth-confirm">${t('confirm_password')}</label><input id="auth-confirm" name="confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+    <p class="small">${t('auth_setup_hint')}</p>
+    <button class="btn green" type="submit">${t('setup_admin_btn')}</button>`
+    : mode === 'change' ? `
+    <p>${t('must_change_password')}</p>
+    <label for="auth-password">${t('new_password')}</label><input id="auth-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+    <label for="auth-confirm">${t('confirm_password')}</label><input id="auth-confirm" name="confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+    <button class="btn green" type="submit">${t('change_password_btn')}</button>` : `
+    <label for="auth-username">${t('username')}</label><input id="auth-username" name="username" autocomplete="username" required>
+    <label for="auth-password">${t('password')}</label><input id="auth-password" name="password" type="password" autocomplete="current-password" required>
+    <button class="btn green" type="submit">${t('login_btn')}</button>`;
+  root.innerHTML = `<div class="auth-card card"><div class="auth-heading"><h1>${esc(title)}</h1><button id="auth-lang-btn" class="btn ghost sm" type="button" onclick="cycleLang()">${LANG_CODE[LANG]}</button></div><form id="auth-form" class="auth-form">${credentials}</form></div>`;
+  wireLabels(root);
+  $('#auth-form').onsubmit = async (event) => {
+    event.preventDefault();
+    const password = $('#auth-password').value;
+    const confirm = $('#auth-confirm');
+    if (confirm && password !== confirm.value) return toast(t('passwords_mismatch'));
+    const submit = $('button[type=submit]', event.currentTarget);
+    submit.disabled = true;
+    try {
+      const payload = mode === 'setup'
+        ? { username: $('#auth-username').value, password }
+        : mode === 'change' ? { password } : { username: $('#auth-username').value, password };
+      const endpoint = mode === 'setup' ? '/api/auth/setup' : mode === 'change' ? '/api/auth/change-password' : '/api/auth/login';
+      const result = await api(endpoint, { method: 'POST', body: JSON.stringify(payload) });
+      state.currentUser = result.user;
+      if (result.user.must_change_password) renderAuth('change');
+      else await startApp();
+    } catch (e) {
+      toast(e.message);
+      submit.disabled = false;
+    }
+  };
+  $('input', root).focus();
+}
+
+async function startApp() {
+  $('#auth-root').hidden = true;
+  $('#app-shell').hidden = false;
   const [b] = await Promise.all([api('/api/bootstrap')]);
   state.categories = b.categories;
   state.pricings = b.pricings;
@@ -429,11 +224,48 @@ async function init() {
   const biz = state.settings.business_name || t('app_title');
   $('#brand').textContent = biz;
   document.title = biz;
+  $('#user-controls').hidden = false;
+  $('#user-name').textContent = `${state.currentUser.username} · ${t(state.currentUser.role === 'admin' ? 'role_admin' : 'role_worker')}`;
+  $('#logout-btn').onclick = logout;
+  $$('#nav [data-tab="rates"], #nav [data-tab="reports"], #nav [data-tab="settings"]').forEach((button) => {
+    button.hidden = state.currentUser.role !== 'admin' && button.dataset.tab !== 'settings';
+  });
   bindNav();
   await Promise.all([renderIssue(), renderDashboard()]);
-  switchTab('issue');
-  $(`[data-tab="issue"]`).click();
+  const tabs = ['issue', 'receive', 'orders', 'inv', 'invcheck', 'clients', 'rates', 'reports', 'settings'];
+  let savedTab = 'issue';
+  try {
+    const storedTab = localStorage.getItem('prokat_tab');
+    if (tabs.includes(storedTab)) savedTab = storedTab;
+  } catch (e) { /* ignore */ }
+  state.tab = savedTab;
   setLang(LANG);
+}
+
+async function logout() {
+  try { await api('/api/auth/logout', { method: 'POST', body: '{}' }); }
+  catch {}
+  state.currentUser = null;
+  state.receiveOrderId = null;
+  renderAuth('login');
+}
+
+function myPasswordModal() {
+  openModal(t('change_my_password'), `
+    <label for="mp-password">${t('new_password')}</label><input id="mp-password" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+    <label for="mp-confirm">${t('confirm_password')}</label><input id="mp-confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+    <div class="row" style="margin-top:12px"><button class="btn green" onclick="changeMyPasswordDo()">${t('change_password_btn')}</button><button class="btn ghost" onclick="closeModal()">${t('cancel')}</button></div>`);
+}
+
+async function changeMyPasswordDo() {
+  const password = $('#mp-password').value;
+  if (password !== $('#mp-confirm').value) return toast(t('passwords_mismatch'));
+  try {
+    const result = await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ password }) });
+    state.currentUser = result.user;
+    closeModal();
+    toast(t('saved'));
+  } catch (e) { toast(e.message); }
 }
 
 function bindNav() {
@@ -442,11 +274,17 @@ function bindNav() {
   });
 }
 
-async function switchTab(tab) {
+async function switchTab(tab, preserveReceiveOrder = false) {
+  if (state.currentUser && state.currentUser.role === 'worker' && ['rates', 'reports'].includes(tab)) {
+    toast(t('auth_worker_limit'));
+    tab = 'issue';
+  }
+  if (state.tab === 'issue') syncDraftFields();
   state.tab = tab;
+  try { localStorage.setItem('prokat_tab', tab); } catch (e) { /* ignore */ }
   $$('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
   $$('.view').forEach((v) => v.classList.toggle('active', v.id === 'tab-' + tab));
-  if (tab === 'receive') { state.receiveOrderId = null; }
+  if (tab === 'receive' && !preserveReceiveOrder) { state.receiveOrderId = null; }
   const renderers = {
     issue: renderIssue, receive: renderReceive, orders: renderOrders,
     inv: renderInv, invcheck: renderInvCheck, clients: renderClients,
@@ -478,17 +316,15 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-async function onScan(code) {
+function onScan(code) {
   if (state.tab === 'receive') return receiveScan(code);
   if (state.tab === 'issue') return issueScan(code);
   if (state.tab === 'invcheck') return invCheckScan(code);
-  toast(t('scanned', { code }));
 }
 
 async function issueScan(code) {
   try {
-    const items = await api('/api/items?q=' + encodeURIComponent(code));
-    const it = items.find((x) => x.barcode === code);
+    const it = await api('/api/items/barcode/' + encodeURIComponent(code)).catch(() => null);
     if (!it) return toast(t('not_found', { code }));
     if (it.status !== 'in_stock') {
       const msg = it.status === 'rented' ? t('item_rented', { bc: it.barcode })
@@ -497,18 +333,13 @@ async function issueScan(code) {
       return toast(msg);
     }
     if (state.draft.lines.some((l) => l.pin === it.id)) return toast(t('already_added', { bc: it.barcode }));
-    if (!state.pricings.some((p) => p.kind === 'category' && p.category_id === it.category_id && p.active)) {
-      const p = await api('/api/pricings', { method: 'POST', body: JSON.stringify({
-        name: it.cat_name, kind: 'category', category_id: it.category_id, price_hour: 0, price_day: 250, price_flat: 0 }) });
-      state.pricings.push({ id: p.id, name: it.cat_name, kind: 'category', category_id: it.category_id });
-    }
-    const pricing = state.pricings.find((p) => p.kind === 'category' && p.category_id === it.category_id);
+    const pricing = await ensureCategoryPricing(it);
     state.draft.lines.push({
       pricing_id: pricing.id, kind: 'category', name: pricing.name, qty: 1, pin: it.id,
       barcode: it.barcode, model: it.model + ' ' + it.size, cat_name: it.cat_name });
     toast(t('added', { bc: it.barcode }));
     syncDraftFields();
-    renderIssue();
+    renderDraftBlock();
   } catch (e) { toast(e.message); }
 }
 
@@ -521,7 +352,7 @@ async function receiveScan(code) {
     }
     state.receiveOrderId = r.order_id;
     await renderReceive();
-    setTimeout(() => conditionModal(r.unit_id), 120);
+    setTimeout(() => conditionModal(r.order_id, r.unit_id), 120);
   } catch (e) { toast(e.message); }
 }
 
@@ -531,18 +362,15 @@ async function invCheckScan(code) {
     const r = await api('/api/inventory/scan', { method: 'POST', body: JSON.stringify({ session_id: state.invSessionId, barcode: code }) });
     if (!r.found) return toast(r.error || t('not_found_plain'));
     toast(t('scanned_inv', { v: r.item.barcode + ' ' + r.item.model + ' ' + r.item.size }));
+    await renderInvCheck();
   } catch (e) { toast(e.message); }
 }
 
 async function renderDashboard() {}
 
-async function renderIssue() {
-  const el = $('#tab-issue');
+function draftLinesHtml() {
   const st = state.draft;
-  const activeOrders = await api('/api/orders/active');
-  const overdue = activeOrders.filter((o) => o.overdue);
-
-  const linesHtml = st.lines.length ? st.lines.map((l, i) => `
+  return st.lines.length ? st.lines.map((l, i) => `
     <div class="line">
       <span class="mono">${esc(l.barcode || (l.kind === 'service' ? t('service_label') : t('auto_pick')))}</span>
       <b>${esc(l.name)}</b>
@@ -551,15 +379,26 @@ async function renderIssue() {
       ${l.pin ? '<span class="small">×1</span>' : `<input type="number" min="1" value="${l.qty}" style="width:60px" onchange="setDraftQty(${i}, this.value)">`}
       <button class="btn sm ghost" onclick="removeDraftLine(${i})">${t('remove')}</button>
     </div>`).join('') : '<div class="muted">' + t('issue_empty_hint') + '</div>';
+}
+
+async function renderIssue() {
+  const el = $('#tab-issue');
+  const st = state.draft;
+  const activeOrders = await api('/api/orders/active');
+  const overdue = activeOrders.filter((o) => o.overdue);
+  window._overdueList = overdue.slice();
+
+  const linesHtml = draftLinesHtml();
 
   el.innerHTML = `
     <div class="card">
       <h2>${t('issue_title')}</h2>
-      ${overdue.length ? `<div class="status-box warn">${t('overdue_warn', { ids: overdue.map((o) => '#' + o.id).join(', ') })}</div>` : ''}
+      ${overdue.length ? `<div class="status-box warn" style="cursor:pointer" data-overdue="1">${t('overdue_warn', { ids: overdue.map((o) => '#' + o.id).join(', ') })}</div>` : ''}
       <div class="row">
         <div class="grow">
           <label>${t('client')}</label>
-          <input id="i-client" placeholder="${t('client_search_ph')}" value="${esc(st.client ? st.client.name : st.clientName || '')}" oninput="debouncedClientSearch(this.value)">
+          <input id="i-client" aria-label="${t('client_search_ph')}" autocomplete="off" placeholder="${t('client_search_ph')}" value="${esc(st.client ? st.client.name : st.clientName || '')}" oninput="clientInput(this.value)">
+          <div id="i-client-suggestions" class="suggestions" role="listbox" hidden></div>
           <input type="hidden" id="i-client-id">
         </div>
         <button class="btn ghost" onclick="clientModal()">${t('pick_from_db')}</button>
@@ -572,15 +411,12 @@ async function renderIssue() {
       <h3>${t('order_positions')}</h3>
       <div id="draft-lines">${linesHtml}</div>
       <div class="row" style="margin-top:10px">
-        <select id="i-cat" onchange="addCategory(this)"><option value="">${t('category_opt')}</option>
-          ${pricingActive('category').map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
-        </select>
         <button class="btn ghost" onclick="pickItemModal()">${t('pick_item')}</button>
         <select id="i-svc" onchange="addService(this)"><option value="">${t('service_opt')}</option>
           ${pricingActive('service').map((p) => `<option value="${p.id}">${esc(p.name)} — ${money(p.price_flat)}</option>`).join('')}
         </select>
       </div>
-      <div class="scan-hint" style="margin-top:8px">${t('issue_scan_hint')}</div>
+       <div class="row scan-row" style="margin-top:8px"><input id="issue-scanner" class="scanner-input" aria-label="${t('scan_input_ph')}" placeholder="${t('scan_input_ph')}" onkeydown="if(event.key==='Enter'){event.preventDefault();scanFromInput(this)}"><div class="scan-hint">${t('issue_scan_hint')}</div></div>
     </div>
 
     <div class="card">
@@ -589,10 +425,10 @@ async function renderIssue() {
           <label>${t('planned_return')}</label>
           <input type="datetime-local" id="i-end" value="${st.planned_end}" oninput="updateIssueTotal()">
         </div>
-        <div class="grow">
+        ${state.settings.deposit_enabled === '0' ? `<div class="grow small">${t('deposit_disabled_note')}</div>` : `<div class="grow">
           <label>${t('deposit')}</label>
-          <input type="number" id="i-deposit" placeholder="0" value="${st.deposit == null ? state.settings.deposit_default : st.deposit}" oninput="updateIssueTotal()">
-        </div>
+          <div class="row deposit-row"><input type="number" min="0" step="0.01" id="i-deposit" placeholder="0" value="${st.deposit == null ? state.settings.deposit_default : st.deposit}" oninput="updateIssueTotal()"><select id="i-deposit-method" aria-label="${t('method')}" onchange="setDepositMethod(this.value)"><option value="cash" ${st.deposit_method !== 'card' ? 'selected' : ''}>${t('cash')}</option><option value="card" ${st.deposit_method === 'card' ? 'selected' : ''}>${t('card')}</option></select></div>
+        </div>`}
         <div class="grow">
           <label>${t('comment')}</label>
           <input id="i-notes" placeholder="${t('comment_ph')}" value="${esc(st.notes)}">
@@ -614,16 +450,47 @@ async function renderIssue() {
   if (st.client) setClientBox(st.client);
 }
 
+function renderDraftBlock() {
+  const box = $('#draft-lines');
+  if (box) box.innerHTML = draftLinesHtml();
+  updateIssueTotal();
+}
+
 function debouncedClientSearch(q) {
-  if (q.length < 2) return;
-  clearTimeout(this._t);
-  this._t = setTimeout(async () => {
+  clearTimeout(state.clientSearchTimer);
+  const box = $('#i-client-suggestions');
+  if (q.length < 2) {
+    if (box) box.hidden = true;
+    return;
+  }
+  state.clientSearchTimer = setTimeout(async () => {
     const list = await api('/api/clients?q=' + encodeURIComponent(q)).catch(() => []);
-    if (list.length) {
-      const names = list.map((c) => c.name + ' (' + c.phone + ')').join('\n');
-      toast(t('found', { names }));
-    }
+    if (!$('#i-client-suggestions') || $('#i-client').value.trim() !== q) return;
+    state.clientMatches = list;
+    const suggestions = $('#i-client-suggestions');
+    suggestions.innerHTML = list.length
+      ? list.map((c) => `<button type="button" role="option" class="suggestion" onclick="selectDraftClient(${c.id})"><b>${esc(c.name)}</b><span>${esc(c.phone)}</span></button>`).join('')
+      : `<div class="suggestion-empty">${t('no_client_matches')}</div>`;
+    suggestions.hidden = false;
   }, 400);
+}
+
+function clientInput(value) {
+  if (state.draft.client && value !== state.draft.client.name) {
+    state.draft.client = null;
+    $('#i-client-id').value = '';
+    $('#i-client-info').innerHTML = '';
+  }
+  state.draft.clientName = value;
+  debouncedClientSearch(value.trim());
+}
+
+function selectDraftClient(id) {
+  const client = (state.clientMatches || []).find((c) => c.id === id);
+  if (!client) return;
+  setClientBox(client);
+  const suggestions = $('#i-client-suggestions');
+  if (suggestions) suggestions.hidden = true;
 }
 
 function syncDraftFields() {
@@ -631,9 +498,12 @@ function syncDraftFields() {
   if (!$('#draft-lines')) return;
   if ($('#i-end')) st.planned_end = $('#i-end').value;
   if ($('#i-deposit')) st.deposit = $('#i-deposit').value || null;
+  if ($('#i-deposit-method')) st.deposit_method = $('#i-deposit-method').value;
   if ($('#i-notes')) st.notes = $('#i-notes').value;
   if ($('#i-client')) st.clientName = $('#i-client').value;
 }
+
+function setDepositMethod(method) { state.draft.deposit_method = method; }
 
 function setClientBox(client) {
   state.draft.client = client;
@@ -643,7 +513,9 @@ function setClientBox(client) {
   const hid = $('#i-client-id');
   if (hid) hid.value = client.id;
   const inp = $('#i-client');
-  if (inp && !inp.value) inp.value = client.name;
+  if (inp) inp.value = client.name;
+  const suggestions = $('#i-client-suggestions');
+  if (suggestions) suggestions.hidden = true;
 }
 
 function clientRemove() {
@@ -652,25 +524,38 @@ function clientRemove() {
   $('#i-client').value = '';
   $('#i-client-id').value = '';
   $('#i-client-info').innerHTML = '';
+  const suggestions = $('#i-client-suggestions');
+  if (suggestions) suggestions.hidden = true;
+}
+
+async function scanFromInput(input) {
+  const code = input.value.trim();
+  const id = input.id;
+  input.value = '';
+  if (!code) return;
+  if (state.tab === 'invcheck') await invCheckScan(code);
+  else await onScan(code);
+  const next = $('#' + id);
+  if (next) next.focus();
 }
 
 function setDraftQty(i, v) {
   state.draft.lines[i].qty = Math.max(1, parseInt(v) || 1);
   syncDraftFields();
-  renderIssue();
+  renderDraftBlock();
 }
 function removeDraftLine(i) {
   state.draft.lines.splice(i, 1);
   syncDraftFields();
-  renderIssue();
+  renderDraftBlock();
 }
 function addCategory(sel) {
   const p = state.pricings.find((x) => x.id == sel.value);
-  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'category', name: p.name, qty: 1 }); syncDraftFields(); renderIssue(); }
+  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'category', name: p.name, qty: 1 }); syncDraftFields(); renderDraftBlock(); }
 }
 function addService(sel) {
   const p = state.pricings.find((x) => x.id == sel.value);
-  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'service', name: p.name, qty: 1, price: p.price_flat }); syncDraftFields(); renderIssue(); }
+  if (p) { state.draft.lines.push({ pricing_id: p.id, kind: 'service', name: p.name, qty: 1, price: p.price_flat }); syncDraftFields(); renderDraftBlock(); }
 }
 
 function pickRows(list) {
@@ -708,20 +593,15 @@ async function pickItemDo(barcode) {
   const it = (window._pickItems || []).find((x) => x.barcode === barcode);
   if (!it) return toast(t('not_found', { code: barcode }));
   if (state.draft.lines.some((l) => l.pin === it.id)) return toast(t('already_added', { bc: barcode }));
-  if (!state.pricings.some((p) => p.kind === 'category' && p.category_id === it.category_id && p.active)) {
-    const p = await api('/api/pricings', { method: 'POST', body: JSON.stringify({
-      name: it.cat_name, kind: 'category', category_id: it.category_id,
-      price_hour: 0, price_day: 250, price_flat: 0 }) });
-    state.pricings.push({ id: p.id, name: it.cat_name, kind: 'category', category_id: it.category_id });
-  }
+  const pricing = await ensureCategoryPricing(it);
   state.draft.lines.push({
-    pricing_id: state.pricings.find((p) => p.kind === 'category' && p.category_id === it.category_id).id,
+    pricing_id: pricing.id,
     kind: 'category', name: it.cat_name, qty: 1, pin: it.id,
     barcode: it.barcode, model: it.brand + ' ' + it.model + ' ' + it.size, cat_name: it.cat_name });
   toast(t('added_full', { v: it.barcode + ' ' + it.model + ' ' + it.size }));
   closeModal();
   syncDraftFields();
-  renderIssue();
+  renderDraftBlock();
 }
 
 function estimateDraft() {
@@ -764,6 +644,12 @@ function estimateDraft() {
   return { total: Math.round(total * 100) / 100, end };
 }
 
+function overdueInfo() {
+  if (!window._overdueList || !window._overdueList.length) return;
+  const items = window._overdueList.map(o => `<div class="line"><div class="grow"><b>#${o.id}</b> ${esc(o.client_name||'')} ${o.client_phone?'· '+esc(o.client_phone):''}</div><button type="button" class="btn sm" data-order="${o.id}">${t('open')}</button></div>`).join('');
+  openModal(t('overdue_warn_modal'), `<div>${items}</div><div class="row" style="margin-top:12px"><button class="btn ghost" onclick="closeModal()">${t('close')}</button></div>`);
+}
+
 function updateIssueTotal() {
   const box = $('#issue-total');
   if (!box) return;
@@ -780,7 +666,8 @@ function draftToCreate() {
   return {
     client_id: state.draft.client ? state.draft.client.id : null,
     planned_end: ($('#i-end').value || '').replace('T', ' '),
-    deposit: parseFloat($('#i-deposit').value) || 0,
+    deposit: state.settings.deposit_enabled === '0' ? 0 : parseFloat($('#i-deposit').value) || 0,
+    deposit_method: state.draft.deposit_method || 'cash',
     notes: $('#i-notes').value,
     lines: state.draft.lines.map((l) => ({ pricing_id: l.pricing_id, qty: l.qty, item_pin: l.pin || null }))
   };
@@ -793,12 +680,13 @@ async function createOrder() {
     if (!body.lines.length) return toast(t('add_lines'));
     if (!body.planned_end) return toast(t('select_return_date'));
     const order = await api('/api/orders', { method: 'POST', body: JSON.stringify(body) });
-    state.draft = { client: null, clientName: '', lines: [], planned_end: '', deposit: null, notes: '' };
+    state.draft = { client: null, clientName: '', lines: [], planned_end: '', deposit: null, deposit_method: 'cash', notes: '' };
     toast(t('order_created', { id: order.id }));
     openModal(t('order_title', { id: order.id }), orderDetailHtml(order) + `
       <div class="row" style="margin-top:14px">
         <button class="btn" onclick="printContract()">${t('print_contract')}</button>
         <button class="btn green" onclick="recordPaymentModal(${order.id})">${t('add_payment')}</button>
+        <button class="btn red" onclick="cancelOrder(${order.id})">${t('cancel_order_btn')}</button>
         <button class="btn ghost" onclick="closeModal()">${t('close')}</button>
       </div>`);
     window._lastOrder = order;
@@ -821,7 +709,8 @@ function orderDetailHtml(order) {
     <table><thead><tr><th>${t('position')}</th><th>${t('units_barcode')}</th><th class="right">${t('amount')}</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="total-row"><span>${t('total')}</span><span>${money(order.final_total)}</span></div>
     <div class="total-row"><span>${t('deposit_paid')}</span><span>${money(order.deposit)} / ${money(order.paid)}</span></div>
-    ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.to_charge) })}</div>` : ''}`;
+    ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.to_charge) })}</div>` : ''}
+    ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.to_refund) })}</div>` : ''}`;
 }
 
 function printContract() {
@@ -865,109 +754,122 @@ async function renderActiveList(activeOrders) {
     </div>`).join('');
 }
 
-function goReceive(id) { state.receiveOrderId = id; switchTab('receive'); }
+function goReceive(id) { state.receiveOrderId = id; switchTab('receive', true); }
 
 async function renderReceive() {
   const el = $('#tab-receive');
   const activeOrders = await api('/api/orders/active');
-  let order = null;
-  if (state.receiveOrderId) {
-    order = await api('/api/orders/' + state.receiveOrderId).catch(() => null);
-    if (!order || order.status !== 'active') { state.receiveOrderId = null; order = null; }
-  }
+  const cards = activeOrders.map(orderCardHtml).join('');
   const selHtml = `
     <div class="card">
-      <h2>${t('receive_title')}</h2>
-      <div class="row">
-        <select id="r-select" onchange="receiveSelect(this.value)" style="max-width:300px">
-          <option value="">${t('receive_sel_ph')}</option>
-          ${activeOrders.map((o) => `<option value="${o.id}" ${state.receiveOrderId == o.id ? 'selected' : ''}>#${o.id} — ${esc(o.client_name)} (${t('not_returned_count', { n: o.units_left })})${o.overdue ? ' ' + t('overdue_bracket') : ''}</option>`).join('')}
-        </select>
-        <button class="btn ghost" onclick="renderReceive()">${t('refresh')}</button>
-      </div>
-      <div class="scan-hint" style="margin-top:8px">${t('receive_scan_hint')}</div>
+      <h2>${t('receive_title')} <span class="small muted">${t('active_orders')}: ${activeOrders.length}</span></h2>
+      <div class="row scan-row"><input id="receive-scanner" class="scanner-input" aria-label="${t('scan_input_ph')}" placeholder="${t('scan_input_ph')}" onkeydown="if(event.key==='Enter'){event.preventDefault();scanFromInput(this)}"><div class="scan-hint">${t('receive_scan_hint')}</div></div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost" onclick="renderReceive()">${t('refresh')}</button></div>
     </div>`;
-
-  let orderHtml = '<div class="muted">' + t('select_order_above') + '</div>';
-  if (order) {
-    const notRet = order.items.map((oi) => oi.units.filter((u) => !u.return_time).length).reduce((a, b) => a + b, 0);
-    const ret = order.items.map((oi) => oi.units.filter((u) => u.return_time).length).reduce((a, b) => a + b, 0);
-    const rows = order.items.map((oi) => `
-      <tr>
-        <td>${esc(oi.name)}</td>
-        <td>${oi.units.map((u) => `
-          <div class="line">
-            <span class="mono">${esc(unitLabel(u))}</span>
-            ${u.return_time
-              ? `<span class="badge returned">${t('returned_at', { t: fmtDT(u.return_time) })}</span>${u.condition_ok ? '' : `<span class="badge service">${t('damage')}</span>`}`
-              : `<button class="btn sm" onclick="conditionModal(${u.id})">${t('receive_btn')}</button>`}
-          </div>`).join('') || '<span class="small muted">—</span>'}</td>
-      </tr>`).join('');
-    orderHtml = `
-      <div class="card">
-        <h3>${t('order_for', { id: order.id, name: esc(order.client ? order.client.name : '') })}</h3>
-        <div class="row small">
-          <div>${t('issue_at')} <b>${fmtDT(order.started_at)}</b></div>
-          <div>${t('return_plan_at')} <b>${fmtDT(order.planned_end)}</b></div>
-          <div class="badge active">${t('returned_ratio', { a: ret, b: ret + notRet })}</div>
-        </div>
-        <table><thead><tr><th>${t('position')}</th><th>${t('units')}</th></tr></thead><tbody>${rows}</tbody></table>
-        <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px">
-          <div class="row small">
-            <div>${t('plan_cost', { v: money(order.estimated_total) })}</div>
-            <div><b>${t('actual_cost', { v: money(order.actual_total) })}</b>${order.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(order.late_fee) })}</span>` : ''}</div>
-            <div>${t('received_label', { v: money(order.deposit + order.paid) })}</div>
-          </div>
-          ${order.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.actual_to_charge) })}</div>` : ''}
-          ${order.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.actual_to_refund) })}</div>` : ''}
-        </div>
-        ${notRet === 0 ? `
-          <div class="status-box ok" style="margin-top:12px">${t('all_returned_total', { v: money(order.actual_total) })}</div>
-          <div class="total-row"><span>${t('deposit')}</span><span>${money(order.deposit)}</span></div>
-          <div class="total-row"><span>${t('paid')}</span><span>${money(order.paid)}</span></div>
-          <div class="row" style="margin-top:12px">
-            <button class="btn ghost" onclick="recordPaymentModal(${order.id})">${t('pay_refund')}</button>
-            <button class="btn green" onclick="closeOrder(${order.id})">${t('close_order')}</button>
-            <button class="btn ghost" onclick="printOrderReceipt(${order.id})">${t('print_receipt')}</button>
-          </div>` : ''}
-      </div>`;
+  el.innerHTML = selHtml + (cards || `<div class="card muted">${t('no_active_orders')}</div>`);
+  if (state.receiveOrderId) {
+    const card = $('#rc-' + state.receiveOrderId);
+    if (card) {
+      card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1200);
+    }
   }
-  el.innerHTML = selHtml + orderHtml;
 }
 
-function receiveSelect(id) {
-  state.receiveOrderId = id ? parseInt(id) : null;
-  renderReceive();
+function orderCardHtml(o) {
+  const notRet = o.items.map((oi) => oi.units.filter((u) => !u.return_time).length).reduce((a, b) => a + b, 0);
+  const ret = o.items.map((oi) => oi.units.filter((u) => u.return_time).length).reduce((a, b) => a + b, 0);
+  const buildUnitDiv = (u) => `<div class="line">
+    <span class="mono">${esc(unitLabel(u))}</span>
+    ${u.return_time
+      ? `<span class="badge returned">${t('returned_at', { t: fmtDT(u.return_time) })}</span>${u.condition_ok ? '' : `<span class="badge service">${t('damage')}</span>`}`
+      : `<button class="btn sm" onclick="conditionModal(${o.id}, ${u.id})">${t('receive_btn')}</button>`}
+  </div>`;
+  const groupByKit = o.items.flatMap((oi) => oi.units).reduce((m, u) => {
+    const k = u.kit_set != null ? 'k' + u.kit_set : 'other';
+    (m[k] = m[k] || []).push(u);
+    return m;
+  }, {});
+  const kitKeys = Object.keys(groupByKit).filter((k) => k.startsWith('k')).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+  const parts = [];
+  kitKeys.forEach((k, i) => {
+    const setNum = Number(k.slice(1));
+    const name = t('kit_set') + ' #' + setNum;
+    const uns = groupByKit[k].filter((x) => !x.return_time).length;
+    const tot = groupByKit[k].length;
+    parts.push(`<div class="kit-block"><div class="kit-header"><b>${name}</b> <span class="small muted">${t('returned_ratio', { a: tot - uns, b: tot })}</span></div>${groupByKit[k].map(buildUnitDiv).join('')}</div>`);
+  });
+  if (groupByKit.other && groupByKit.other.length) {
+    const uns = groupByKit.other.filter((x) => !x.return_time).length;
+    const tot = groupByKit.other.length;
+    parts.push(`<div class="kit-block"><div class="kit-header"><b>${t('items_other')}</b> <span class="small muted">${t('returned_ratio', { a: tot - uns, b: tot })}</span></div>${groupByKit.other.map(buildUnitDiv).join('')}</div>`);
+  }
+  const rows = o.items.map((oi) => `<tr><td>${esc(oi.name)}</td><td>${oi.units.map((u) => buildUnitDiv(u)).join('') || '<span class="small muted">—</span>'}</td></tr>`).join('');
+  return `
+    <div class="card order-card" id="rc-${o.id}">
+      <div class="row">
+        <h3 style="margin:0">${t('order_for', { id: o.id, name: esc(o.client ? o.client.name : '') })}</h3>
+        <span class="badge active">${t('returned_ratio', { a: ret, b: ret + notRet })}</span>
+        ${o.overdue ? `<span class="badge overdue">${t('overdue_badge')}</span>` : ''}
+      </div>
+      <div class="row small">
+        <div>${t('issue_at')} <b>${fmtDT(o.started_at)}</b></div>
+        <div>${t('return_plan_at')} <b>${fmtDT(o.planned_end)}</b></div>
+        <div>${t('received_label', { v: money(o.deposit + o.paid) })}</div>
+      </div>
+      <div class="kit-wrap">${parts.join('') || rows}</div>
+      <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px">
+        <div class="row small">
+          <div>${t('plan_cost', { v: money(o.estimated_total) })}</div>
+          <div><b>${t('actual_cost', { v: money(o.actual_total) })}</b>${o.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(o.late_fee) })}</span>` : ''}</div>
+          <div>${t('deposit_col')}: ${money(o.deposit)}</div>
+        </div>
+        ${o.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(o.actual_to_charge) })}</div>` : ''}
+        ${o.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(o.actual_to_refund) })}</div>` : ''}
+      </div>
+      ${notRet === 0 ? `
+        <div class="status-box ok" style="margin-top:12px">${t('all_returned_total', { v: money(o.actual_total) })}</div>
+        <div class="total-row"><span>${t('deposit')}</span><span>${money(o.deposit)}</span></div>
+        <div class="total-row"><span>${t('paid')}</span><span>${money(o.paid)}</span></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn ghost" onclick="recordPaymentModal(${o.id})">${t('pay_refund')}</button>
+          <button class="btn green" onclick="closeOrder(${o.id})">${t('close_order')}</button>
+          <button class="btn ghost" onclick="printOrderReceipt(${o.id})">${t('print_receipt')}</button>
+        </div>` : ''}
+    </div>`;
 }
 
-function conditionModal(unitId) {
+function conditionModal(orderId, unitId) {
   openModal(t('item_condition'), `
     <p>${t('condition_hint')}</p>
     <div class="row">
-      <button class="btn green" onclick="returnUnitDone(${unitId}, 1, '')">${t('ok_cond')}</button>
-      <button class="btn red" onclick="returnUnitModalNote(${unitId})">${t('damage')}</button>
+      <button class="btn green" onclick="returnUnitDone(${orderId}, ${unitId}, 1, '')">${t('ok_cond')}</button>
+      <button class="btn red" onclick="returnUnitModalNote(${orderId}, ${unitId})">${t('damage')}</button>
       <button class="btn ghost" onclick="closeModal()">${t('cancel')}</button>
     </div>`);
 }
 
-function returnUnitModalNote(unitId) {
+function returnUnitModalNote(orderId, unitId) {
   openModal(t('damage'), `
     <label>${t('damage_desc')}</label>
     <textarea id="dam-note" rows="2"></textarea>
     <div class="row" style="margin-top:12px">
-      <button class="btn red" onclick="returnUnitDone(document._uid, 0, $('#dam-note').value)">${t('record')}</button>
+      <button class="btn red" onclick="returnUnitDone(${orderId}, ${unitId}, 0, $('#dam-note').value)">${t('record')}</button>
       <button class="btn ghost" onclick="closeModal()">${t('cancel')}</button>
     </div>`);
-  document._uid = unitId;
 }
 
-async function returnUnitDone(unitId, ok, note) {
+async function returnUnitDone(orderId, unitId, ok, note) {
   try {
-    await api('/api/orders/' + state.receiveOrderId + '/return-unit', {
+    await api('/api/orders/' + orderId + '/return-unit', {
       method: 'POST', body: JSON.stringify({ unit_id: unitId, condition_ok: ok, condition_note: note }) });
     closeModal();
     toast(ok ? t('accepted') : t('damage_recorded'));
+    state.receiveOrderId = orderId;
     await renderReceive();
+    const scanner = $('#receive-scanner');
+    if (scanner) scanner.focus();
   } catch (e) { toast(e.message); }
 }
 
@@ -985,7 +887,7 @@ async function recordPaymentModal(orderId) {
   openModal(t('payment_order', { id: orderId }), `
     <div class="small">${t('payment_summary', { v: money(order.final_total), d: money(order.deposit), p: money(order.paid), r: money(order.refunded) })}</div>
     <div class="row" style="margin-top:10px">
-      <div class="grow"><label>${t('amount')}</label><input id="pay-amount" type="number" step="0.01"></div>
+      <div class="grow"><label>${t('amount')}</label><input id="pay-amount" type="number" min="0.01" step="0.01"></div>
       <div class="grow"><label>${t('kind')}</label>
         <select id="pay-type">
           <option value="payment">${t('pay')}</option>
@@ -1005,7 +907,7 @@ async function recordPaymentModal(orderId) {
 
 async function savePayment(orderId) {
   try {
-    await api('/api/orders/' + orderId + '/payment', {
+    const order = await api('/api/orders/' + orderId + '/payment', {
       method: 'POST', body: JSON.stringify({
         amount: parseFloat($('#pay-amount').value) || 0,
         type: $('#pay-type').value,
@@ -1013,45 +915,76 @@ async function savePayment(orderId) {
     closeModal();
     toast(t('saved'));
     if (state.tab === 'receive') await renderReceive();
+    else {
+      updateOrderRow(order);
+      await orderInfo(orderId);
+    }
   } catch (e) { toast(e.message); }
 }
 
 async function renderOrders() {
   const el = $('#tab-orders');
-  const orders = await api('/api/orders');
-  const rows = orders.slice(0, 200).map((o) => `
-    <tr onclick="orderInfo(${o.id})">
-      <td><b>#${o.id}</b></td>
-      <td>${esc(o.client_name || '')}</td>
-      <td>${fmtDT(o.started_at)}</td>
-      <td>${fmtDT(o.planned_end)}</td>
-      <td>${statusBadge(o.status)}${o.status !== 'active' ? `<div class="small muted">${fmtDT(o.ended_at)}</div>` : ''}</td>
-      <td class="right amount">${money(o.deposit)}</td>
-    </tr>`).join('');
   el.innerHTML = `
     <div class="card">
       <h2>${t('orders_title')}</h2>
       <div class="row">
         <div class="grow"><input id="o-search" placeholder="${t('search_number_ph')}" oninput="filterOrders(this.value)"></div>
       </div>
-      <table style="margin-top:8px"><thead><tr><th>${t('num')}</th><th>${t('client_col')}</th><th>${t('issue_col')}</th><th>${t('plan_return_col')}</th><th>${t('status_col')}</th><th class="right">${t('deposit_col')}</th></tr></thead><tbody id="o-tbody">${rows}</tbody></table>
+      <table style="margin-top:8px"><thead><tr><th>${t('num')}</th><th>${t('client_col')}</th><th>${t('issue_col')}</th><th>${t('plan_return_col')}</th><th>${t('status_col')}</th><th class="right">${t('order_total_col')}</th></tr></thead><tbody id="o-tbody"></tbody></table>
+      <button id="o-more" class="btn ghost" style="margin-top:10px" onclick="loadMoreOrders()" hidden>${t('load_more')}</button>
     </div>`;
-  window._allOrders = orders;
+  state.orderOffset = 0;
+  state.orderQuery = '';
+  await loadOrderPage(true);
 }
 
 function filterOrders(q) {
+  clearTimeout(state.orderSearchTimer);
+  state.orderSearchTimer = setTimeout(() => {
+    state.orderQuery = q.trim();
+    loadOrderPage(true);
+  }, 250);
+}
+
+async function loadOrderPage(reset) {
   const tbody = $('#o-tbody');
   if (!tbody) return;
-  const list = window._allOrders || [];
-  const f = list.filter((o) => String(o.id).includes(q));
-  tbody.innerHTML = f.slice(0, 200).map((o) => `
-    <tr onclick="orderInfo(${o.id})">
-      <td><b>#${o.id}</b></td>
-      <td>${esc(o.client_name || '')}</td>
-      <td>${fmtDT(o.started_at)}</td>
-      <td>${fmtDT(o.planned_end)}</td>
-      <td>${statusBadge(o.status)}${o.status !== 'active' ? `<div class="small muted">${fmtDT(o.ended_at)}</div>` : ''}</td>
-      <td class="right amount">${money(o.deposit)}</td></tr>`).join('');
+  if (reset) {
+    state.orderOffset = 0;
+    tbody.innerHTML = '';
+  }
+  const params = new URLSearchParams({ limit: '200', offset: String(state.orderOffset || 0), q: state.orderQuery || '' });
+  const page = await api('/api/orders?' + params.toString());
+  const rows = page.map(orderRowHtml).join('');
+  tbody.insertAdjacentHTML('beforeend', rows);
+  state.orderOffset = (state.orderOffset || 0) + page.length;
+  const more = $('#o-more');
+  if (more) more.hidden = page.length < 200;
+}
+
+function loadMoreOrders() { loadOrderPage(false); }
+
+function orderRowHtml(o) {
+  return `<tr data-order-id="${o.id}" onclick="orderInfo(${o.id})">
+    <td><button class="table-link" aria-label="${t('order_title', { id: o.id })}" onclick="event.stopPropagation();orderInfo(${o.id})"><b>#${o.id}</b></button></td>
+    <td>${esc(o.client_name || '')}</td>
+    <td>${fmtDT(o.started_at)}</td>
+    <td>${fmtDT(o.planned_end)}</td>
+    <td>${statusBadge(o.status)}${o.status !== 'active' ? `<div class="small muted">${fmtDT(o.ended_at)}</div>` : ''}</td>
+    <td class="right"><div class="amount">${money(o.order_total)}</div>${paymentStatusBadge(o.payment_status)}</td></tr>`;
+}
+
+function updateOrderRow(order) {
+  const row = $(`#o-tbody tr[data-order-id="${order.id}"]`);
+  if (!row) return;
+  const netReceived = Number(order.deposit) + Number(order.paid) - Number(order.refunded);
+  const due = Math.round((Number(order.final_total) - netReceived + Number.EPSILON) * 100) / 100;
+  row.outerHTML = orderRowHtml({
+    ...order,
+    client_name: order.client ? order.client.name : '',
+    order_total: order.final_total,
+    payment_status: due <= 0 ? 'paid' : netReceived > 0 ? 'partial' : 'unpaid'
+  });
 }
 
 async function orderInfo(id) {
@@ -1072,7 +1005,9 @@ async function cancelOrder(id) {
   if (!confirmAction(t('cancel_confirm', { id }))) return;
   await api('/api/orders/' + id + '/cancel', { method: 'POST' });
   closeModal();
-  renderOrders();
+  toast(t('order_canceled', { id }));
+  if (state.tab === 'issue') await renderIssue();
+  else renderOrders();
 }
 
 function printOrderReceipt(id) { printOrderReceipt2(id); }
@@ -1131,7 +1066,7 @@ async function renderInv() {
         <div class="grow"><input id="inv-f" placeholder="${t('inv_search_ph')}" oninput="filterInv(this.value)"></div>
         <select id="inv-cat" onchange="filterInv()"><option value="">${t('all_categories')}</option>${cats.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
         <button class="btn" onclick="itemAddModal()">${t('add_item')}</button>
-        <button class="btn ghost" onclick="printLabelsSelected()">${t('print_labels')}</button>
+        <button class="btn ghost" onclick="printLabelsSelected()">${t('print_stock_labels')}</button>
       </div>
       <div style="max-height:520px;overflow:auto;margin-top:8px">
       <table><thead><tr><th>${t('barcode')}</th><th>${t('type')}</th><th>${t('model')}</th><th>${t('size')}</th><th>${t('status_col')}</th><th>${t('condition')}</th><th></th></tr></thead><tbody id="inv-tbody">${rows}</tbody></table>
@@ -1215,11 +1150,12 @@ async function itemEdit(id) {
   const cats = await api('/api/categories');
   openModal(t('edit_item', { bc: item.barcode }), `
     <div class="grid-2">
-      <div><label>${t('category')}</label><select id="e-cat">${cats.map((c) => `<option value="${c.id}" ${c.id === item.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
-      <div><label>${t('status')}</label><select id="e-status">
+      <div><label>${t('category')}</label><select id="e-cat" ${item.status === 'rented' ? 'disabled' : ''}>${cats.map((c) => `<option value="${c.id}" ${c.id === item.category_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+      <div><label>${t('status')}</label><select id="e-status" ${['rented', 'retired'].includes(item.status) ? 'disabled' : ''}>
+        ${item.status === 'retired' ? `<option value="retired" selected>${t('st_retired')}</option>` : ''}
+        ${item.status === 'rented' ? `<option value="rented" selected>${t('st_rented')}</option>` : ''}
         <option value="in_stock" ${item.status === 'in_stock' ? 'selected' : ''}>${t('st_in_stock')}</option>
         <option value="service" ${item.status === 'service' ? 'selected' : ''}>${t('st_service')}</option>
-        <option value="rented" ${item.status === 'rented' ? 'selected' : ''}>${t('st_rented')}</option>
       </select></div>
       <div><label>${t('brand')}</label><input id="e-brand" value="${esc(item.brand)}"></div>
       <div><label>${t('model')}</label><input id="e-model" value="${esc(item.model)}"></div>
@@ -1236,7 +1172,7 @@ async function itemEdit(id) {
 async function itemSave(id) {
   await api('/api/items/' + id, {
     method: 'PUT', body: JSON.stringify({
-      category_id: parseInt($('#e-cat').value), status: $('#e-status').value,
+      category_id: $('#e-cat').disabled ? undefined : parseInt($('#e-cat').value), status: $('#e-status').disabled ? undefined : $('#e-status').value,
       brand: $('#e-brand').value, model: $('#e-model').value, size: $('#e-size').value,
       cond: $('#e-cond').value, notes: $('#e-notes').value }) });
   closeModal();
@@ -1255,6 +1191,11 @@ async function itemRetire(id) {
 async function renderInvCheck() {
   const el = $('#tab-invcheck');
   const sessions = await api('/api/inventory/sessions');
+  if (state.invSessionId && !sessions.some((s) => s.id === state.invSessionId && !s.ended_at)) state.invSessionId = null;
+  if (!state.invSessionId) {
+    const active = sessions.find((s) => !s.ended_at);
+    if (active) state.invSessionId = active.id;
+  }
   const started = state.invSessionId ? await api('/api/inventory/sessions/' + state.invSessionId).catch(() => null) : null;
 
   let sessionHtml = '';
@@ -1269,7 +1210,7 @@ async function renderInvCheck() {
       <div class="card">
         <h3>${t('session_active', { id: started.session.id })}</h3>
         <p class="small">${fmtDT(started.session.started_at)} · ${esc(started.session.note)}</p>
-        <div class="scan-hint">${t('inv_session_hint', { s: scannedTotal, exp: expectedTotal })}</div>
+        <div class="row scan-row"><input id="inventory-scanner" class="scanner-input" aria-label="${t('scan_input_ph')}" placeholder="${t('scan_input_ph')}" onkeydown="if(event.key==='Enter'){event.preventDefault();scanFromInput(this)}"><div class="scan-hint">${t('inv_session_hint', { s: scannedTotal, exp: expectedTotal })}</div></div>
         <table style="margin-top:8px"><thead><tr><th>${t('category')}</th><th class="right">${t('expected')}</th><th class="right">${t('scanned')}</th><th class="right">${t('missing')}</th></tr></thead><tbody>${expRows}</tbody></table>
         <div class="row" style="margin-top:12px">
           <button class="btn ghost" onclick="renderInvCheck()">${t('refresh')}</button>
@@ -1296,9 +1237,16 @@ async function renderInvCheck() {
           <span class="small">${fmtDT(s.started_at)}</span>
           <span class="small">${esc(s.note)}</span>
           ${s.ended_at ? `<span class="badge returned">${t('finished')}</span>` : `<span class="badge active">${t('in_progress')}</span>`}
-          <button class="btn sm ghost" onclick="invSessionReport(${s.id})">${t('report')}</button>
+           ${s.ended_at ? `<button class="btn sm ghost" onclick="invSessionReport(${s.id})">${t('report')}</button>` : `<button class="btn sm" onclick="resumeInvSession(${s.id})">${t('resume')}</button>`}
         </div>`).join('') || '<div class="muted">' + t('no_sessions') + '</div>'}
     </div>`;
+}
+
+async function resumeInvSession(id) {
+  const { session } = await api('/api/inventory/sessions/' + id);
+  if (!session || session.ended_at) return toast(t('not_finished'));
+  state.invSessionId = session.id;
+  renderInvCheck();
 }
 
 async function startInvSession() {
@@ -1362,7 +1310,7 @@ async function renderClients() {
   const clients = await api('/api/clients');
   const rows = clients.map((c) => `
     <tr onclick="clientInfo(${c.id})">
-      <td><b>${esc(c.name)}</b></td>
+      <td><button class="table-link" aria-label="${t('client_name_title', { name: esc(c.name) })}" onclick="event.stopPropagation();clientInfo(${c.id})"><b>${esc(c.name)}</b></button></td>
       <td>${esc(c.phone)}</td>
       <td>${esc(c.doc)}</td>
       <td class="small">${esc(c.notes)}</td>
@@ -1386,7 +1334,7 @@ function filterClients(q) {
   const f = (window._clients || []).filter((c) => (c.name + c.phone + c.doc).toLowerCase().includes(q.toLowerCase()));
   tbody.innerHTML = f.map((c) => `
     <tr onclick="clientInfo(${c.id})">
-      <td><b>${esc(c.name)}</b></td><td>${esc(c.phone)}</td><td>${esc(c.doc)}</td><td class="small">${esc(c.notes)}</td>
+      <td><button class="table-link" aria-label="${t('client_name_title', { name: esc(c.name) })}" onclick="event.stopPropagation();clientInfo(${c.id})"><b>${esc(c.name)}</b></button></td><td>${esc(c.phone)}</td><td>${esc(c.doc)}</td><td class="small">${esc(c.notes)}</td>
     </tr>`).join('');
 }
 
@@ -1452,14 +1400,13 @@ async function clientInfo(id) {
   const clients = window._clients || await api('/api/clients');
   const c = clients.find((x) => x.id === id);
   if (!c) return;
-  const orders = await api('/api/orders');
-  const hist = orders.filter((o) => o.client_id === id).slice(0, 20);
-  const histRows = hist.map((o) => `<tr><td><b>#${o.id}</b></td><td>${fmtDT(o.started_at)}</td><td>${statusBadge(o.status)}${o.status !== 'active' ? `<div class="small muted">${fmtDT(o.ended_at)}</div>` : ''}</td><td class="right">${money(o.deposit)}</td></tr>`).join('');
+  const hist = await api('/api/clients/' + id + '/orders?limit=20');
+  const histRows = hist.map((o) => `<tr><td><b>#${o.id}</b></td><td>${fmtDT(o.started_at)}</td><td>${statusBadge(o.status)}${o.status !== 'active' ? `<div class="small muted">${fmtDT(o.ended_at)}</div>` : ''}</td><td class="right"><div class="amount">${money(o.order_total)}</div>${paymentStatusBadge(o.payment_status)}</td></tr>`).join('');
   openModal(t('client_name_title', { name: c.name }), `
     <p>${t('client_info_line', { phone: esc(c.phone), doc: esc(c.doc) })}</p>
     <p class="small">${esc(c.notes)}</p>
     <h3>${t('order_history')}</h3>
-    <table><thead><tr><th>${t('num')}</th><th>${t('date')}</th><th>${t('status_col')}</th><th class="right">${t('deposit_col')}</th></tr></thead><tbody>${histRows || '<tr><td colspan="4">' + t('no_orders') + '</td></tr>'}</tbody></table>
+     <table><thead><tr><th>${t('num')}</th><th>${t('date')}</th><th>${t('status_col')}</th><th class="right">${t('order_total_col')}</th></tr></thead><tbody>${histRows || '<tr><td colspan="4">' + t('no_orders') + '</td></tr>'}</tbody></table>
     <div class="row" style="margin-top:12px">
       <button class="btn" onclick="editClientModal(${c.id})">${t('edit')}</button>
       <button class="btn ghost" onclick="closeModal()">${t('close')}</button>
@@ -1554,7 +1501,7 @@ function rateFormHtml(p) {
       <div><label>${t('hour_grn')}</label><input id="rt-h" type="number" step="0.01" value="${p.price_hour}"></div>
       <div><label>${t('day_grn')}</label><input id="rt-d" type="number" step="0.01" value="${p.price_day}"></div>
       <div><label>${t('week_grn')}</label><input id="rt-w" type="number" step="0.01" value="${p.price_week}"></div>
-      <div><label>${t('season_grn')}</label><input id="rt-s" type="number" step="0.01" value="${p.price_season}"></div>
+      <div><label>${t('season_grn')}</label><input id="rt-s" type="number" step="0.01" value="${p.price_season}" readonly><span class="small">${t('season_rate_unavailable')}</span></div>
       <div style="grid-column:1/-1"><label>${t('flat_price_grn')}</label><input id="rt-f" type="number" step="0.01" value="${p.price_flat}"></div>
     </div>
     <div class="row" style="margin-top:12px">
@@ -1616,8 +1563,8 @@ async function renderReports() {
   const el = $('#tab-reports');
   const to = new Date();
   const from = new Date(to); from.setDate(from.getDate() - 30);
-  const fromS = from.toISOString().slice(0, 10);
-  const toS = to.toISOString().slice(0, 10);
+  const fromS = localDateInput(from);
+  const toS = localDateInput(to);
   el.innerHTML = `
     <div class="card">
       <h2>${t('reports_title')}</h2>
@@ -1629,6 +1576,11 @@ async function renderReports() {
       <div id="rp-body" style="margin-top:12px"></div>
     </div>`;
   await doReports();
+}
+
+function localDateInput(date) {
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 async function doReports() {
@@ -1674,22 +1626,59 @@ async function doReports() {
 
 async function renderSettings() {
   const el = $('#tab-settings');
+  const accountCard = `
+    <div class="card">
+      <h3>${t('my_account')}: ${esc(state.currentUser.username)}</h3>
+      <p class="small">${t('account_password_hint')}</p>
+      <button class="btn ghost" onclick="myPasswordModal()">${t('change_my_password')}</button>
+    </div>`;
+  if (state.currentUser.role !== 'admin') {
+    el.innerHTML = accountCard;
+    return;
+  }
   const s = await api('/api/settings');
+  const users = await api('/api/users');
+  const usersCard = `
+    <div class="card">
+      <div class="row"><h3 style="margin:0">${t('user_management')}</h3><button class="btn" onclick="userAddModal()">${t('add_user')}</button></div>
+      <div class="user-list">${users.map((u) => `
+        <div class="line">
+          <div class="grow"><b>${esc(u.username)}</b><div class="small">${t(u.role === 'admin' ? 'role_admin' : 'role_worker')}${u.must_change_password ? ' · ' + t('must_change_password') : ''}</div></div>
+          <span class="badge ${u.active ? 'active' : 'retired'}">${t(u.active ? 'user_active' : 'user_inactive')}</span>
+          ${u.id === state.currentUser.id ? '' : `<button class="btn sm ghost" data-username="${esc(u.username)}" onclick="userResetModal(${u.id}, this.dataset.username)">${t('reset_user_password')}</button>`}
+          ${u.id === state.currentUser.id ? '' : `<button class="btn sm ${u.active ? 'red' : ''}" data-username="${esc(u.username)}" onclick="userSetActive(${u.id}, ${u.active ? 'false' : 'true'}, this.dataset.username)">${t(u.active ? 'deactivate_user' : 'activate_user')}</button>`}
+        </div>`).join('') || `<div class="muted">${t('no_users')}</div>`}</div>
+    </div>`;
   el.innerHTML = `
     <div class="card">
       <h2>${t('settings_title')}</h2>
+      <h3 style="margin-top:4px">${t('settings_general')}</h3>
       <div class="grid-2">
         <div><label>${t('biz_name_label')}</label><input id="st-name" value="${esc(s.business_name)}"></div>
         <div><label>${t('currency_label')}</label><input id="st-cur" value="${esc(s.currency)}"></div>
-        <div><label>${t('default_deposit_label')}</label><input id="st-dep" value="${esc(s.deposit_default)}"></div>
+        <div class="setting-toggle"><label for="st-deposit-enabled">${t('deposit_enabled_label')}</label><input id="st-deposit-enabled" type="checkbox" ${s.deposit_enabled === '0' ? '' : 'checked'}></div>
+        <div><label>${t('default_deposit_label')}</label><input id="st-dep" type="number" min="0" step="0.01" value="${esc(s.deposit_default)}"></div>
+        <div class="setting-toggle"><label for="st-grace-enabled">${t('return_grace_label')}</label><input id="st-grace-enabled" type="checkbox" ${s.return_grace_enabled === '0' ? '' : 'checked'}></div>
+        <div class="small setting-hint">${t('return_grace_hint')}</div>
         <div><label>${t('late_fee_label')}</label><input id="st-late" value="${esc(s.late_fee_per_day)}"></div>
+      </div>
+      <h3 style="margin-top:16px">${t('settings_contract')}</h3>
+      <div class="grid-2">
         <div><label>${t('contractor_label')}</label><input id="st-contr" value="${esc(s.contractor)}"></div>
         <div><label>${t('contract_phone_label')}</label><input id="st-phone" value="${esc(s.phone)}"></div>
+      </div>
+      <h3 style="margin-top:16px">${t('settings_labels')}</h3>
+      <div class="grid-2">
+        <div class="setting-toggle"><label for="st-label-biz">${t('label_show_biz')}</label><input id="st-label-biz" type="checkbox" ${s.label_show_biz === '0' ? '' : 'checked'}></div>
+        <div class="setting-toggle"><label for="st-label-site">${t('label_show_site')}</label><input id="st-label-site" type="checkbox" ${s.label_show_site === '0' ? '' : 'checked'}></div>
+        <div><label>${t('label_site')}</label><input id="st-label-site-url" value="${esc(s.label_site)}"></div>
       </div>
       <div class="row" style="margin-top:12px">
         <button class="btn green" onclick="settingsSave()">${t('save')}</button>
       </div>
     </div>
+    ${usersCard}
+    ${accountCard}
     <div class="card">
       <h3>${t('backup')}</h3>
       <p class="small">${t('backup_hint')}</p>
@@ -1701,12 +1690,64 @@ async function settingsSave() {
   await api('/api/settings', {
     method: 'POST', body: JSON.stringify({
       business_name: $('#st-name').value, currency: $('#st-cur').value,
+      deposit_enabled: $('#st-deposit-enabled').checked ? '1' : '0',
+      return_grace_enabled: $('#st-grace-enabled').checked ? '1' : '0',
       deposit_default: $('#st-dep').value, late_fee_per_day: $('#st-late').value,
-      contractor: $('#st-contr').value, phone: $('#st-phone').value }) });
+      contractor: $('#st-contr').value, phone: $('#st-phone').value,
+      label_show_biz: $('#st-label-biz').checked ? '1' : '0',
+      label_show_site: $('#st-label-site').checked ? '1' : '0',
+      label_site: $('#st-label-site-url').value }) });
   state.settings = await api('/api/settings');
+  if (state.settings.deposit_enabled === '0') state.draft.deposit = null;
   $('#brand').textContent = state.settings.business_name || t('app_title');
   document.title = state.settings.business_name || t('app_title');
   toast(t('saved'));
+}
+
+function userAddModal() {
+  openModal(t('add_user'), `
+    <div class="grid-2">
+      <div><label for="nu-name">${t('username')}</label><input id="nu-name" minlength="3" maxlength="32" autocomplete="off"></div>
+      <div><label for="nu-password">${t('password')}</label><input id="nu-password" type="password" minlength="8" maxlength="128" autocomplete="new-password"></div>
+      <div><label for="nu-role">${t('user_role')}</label><select id="nu-role"><option value="worker">${t('role_worker')}</option><option value="admin">${t('role_admin')}</option></select></div>
+      <div class="small">${t('password_min_hint')} · ${t('must_change_password')}</div>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="btn green" onclick="userCreateDo()">${t('create_user')}</button><button class="btn ghost" onclick="closeModal()">${t('cancel')}</button></div>`);
+}
+
+async function userCreateDo() {
+  try {
+    await api('/api/users', { method: 'POST', body: JSON.stringify({
+      username: $('#nu-name').value, password: $('#nu-password').value, role: $('#nu-role').value
+    }) });
+    closeModal();
+    toast(t('user_created'));
+    await renderSettings();
+  } catch (e) { toast(e.message); }
+}
+
+async function userSetActive(id, active, username) {
+  if (!confirmAction(t(active ? 'user_inactive_confirm' : 'user_active_confirm', { name: username }))) return;
+  try {
+    await api('/api/users/' + id, { method: 'PATCH', body: JSON.stringify({ active }) });
+    await renderSettings();
+  } catch (e) { toast(e.message); }
+}
+
+function userResetModal(id, username) {
+  openModal(t('reset_user_password'), `
+    <p>${esc(username)} · ${t('user_reset_password_hint')}</p>
+    <label for="ur-password">${t('new_password')}</label><input id="ur-password" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+    <div class="row" style="margin-top:12px"><button class="btn green" onclick="userResetPasswordDo(${id})">${t('save')}</button><button class="btn ghost" onclick="closeModal()">${t('cancel')}</button></div>`);
+}
+
+async function userResetPasswordDo(id) {
+  try {
+    await api('/api/users/' + id + '/reset-password', { method: 'POST', body: JSON.stringify({ password: $('#ur-password').value }) });
+    closeModal();
+    toast(t('user_password_reset'));
+    await renderSettings();
+  } catch (e) { toast(e.message); }
 }
 
 function downloadBackup() {
@@ -1714,3 +1755,5 @@ function downloadBackup() {
 }
 
 init().catch((e) => { console.error(e); toast(t('init_err', { e: e.message })); });
+
+document.addEventListener('click', function(ev){ var ow=ev.target.closest('[data-overdue]'); if(ow){ ev.preventDefault(); ev.stopPropagation(); overdueInfo(); return; } var ob=ev.target.closest('[data-order]'); if(ob){ ev.preventDefault(); ev.stopPropagation(); closeModal(); setTimeout(function(){ orderInfo(parseInt(ob.dataset.order)); },40); return; } });

@@ -13,7 +13,9 @@
     text-align: center; font-size: 13px; page-break-inside: avoid;
   }
   .label img { width: 100%; }
+  .label .biz { font-weight: bold; margin-bottom: 2px; }
   .label .info { margin-top: 2px; }
+  .label .site { color: #555; margin-top: 1px; }
 </style>
 </head>
 <body>
@@ -22,36 +24,56 @@
 </div>
 <div id="labels"></div>
 <script>
-  const L = { uk: { print: 'Друк', title: 'Друк етикеток' }, ru: { print: 'Печать', title: 'Печать этикеток' }, en: { print: 'Print', title: 'Label printing' } };
-  let lang = 'ru';
-  try { lang = localStorage.getItem('prokat_lang') || 'ru'; } catch (e) {}
-  const dict = L[lang] || L.ru;
+  const L = { uk: { print: 'Друк', title: 'Друк етикеток', biz: 'Прокат' }, ru: { print: 'Печать', title: 'Печать этикеток', biz: 'Прокат' }, en: { print: 'Print', title: 'Label printing', biz: 'Rental' } };
+  let lang = 'uk';
+  try { lang = localStorage.getItem('prokat_lang') || 'uk'; } catch (e) {}
+  const dict = L[lang] || L.uk;
   document.title = dict.title;
   document.querySelector('[data-l]').textContent = dict.print;
+  document.documentElement.lang = lang === 'ru' ? 'ru' : lang === 'uk' ? 'uk' : 'en';
 </script>
 <script>
   const ids = (new URLSearchParams(location.search).get('ids') || '').split(',').filter(Boolean);
   const box = document.getElementById('labels');
 
-  fetch('/api/items').then((r) => r.json()).then((items) => {
-    let images = 0;
-    ids.forEach((id) => {
-      const it = items.find((x) => x.id == id);
-      const div = document.createElement('div');
-      div.className = 'label';
-      const img = document.createElement('img');
-      img.src = '/api/items/' + id + '/label';
-      img.onload = () => { images++; if (images === ids.length) setTimeout(() => window.print(), 350); };
-      div.appendChild(img);
-      if (it) {
-        const info = document.createElement('div');
-        info.className = 'info';
-        info.textContent = (it.brand ? it.brand + ' ' : '') + (it.model ? it.model + ' ' : '') + (it.size ? it.size : '');
-        div.appendChild(info);
-      }
-      box.appendChild(div);
+  const settings = fetch('/api/settings').then((r) => r.ok ? r.json() : {}).catch(() => ({}));
+
+  settings.then((s) => {
+    const showBiz = s.label_show_biz !== '0' && s.business_name;
+    const showSite = s.label_show_site !== '0' && s.label_site;
+    fetch('/api/items?ids=' + ids.join(',')).then((r) => r.json()).then((items) => {
+      let images = 0;
+      ids.forEach((id) => {
+        const it = items.find((x) => x.id == id);
+        const div = document.createElement('div');
+        div.className = 'label';
+        if (showBiz) {
+          const biz = document.createElement('div');
+          biz.className = 'biz';
+          biz.textContent = showBiz;
+          div.appendChild(biz);
+        }
+        const img = document.createElement('img');
+        img.src = '/api/items/' + id + '/label';
+        img.onload = () => { images++; if (images === ids.length) setTimeout(() => window.print(), 350); };
+        div.appendChild(img);
+        if (it) {
+          const info = document.createElement('div');
+          info.className = 'info';
+          info.textContent = (it.brand ? it.brand + ' ' : '') + (it.model ? it.model + ' ' : '') + (it.size ? it.size : '');
+          div.appendChild(info);
+        }
+        if (showSite) {
+          const site = document.createElement('div');
+          site.className = 'site';
+          site.textContent = showSite;
+          div.appendChild(site);
+        }
+        box.appendChild(div);
+      });
     });
   });
 </script>
+</body>
 </body>
 </html>
