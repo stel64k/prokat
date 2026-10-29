@@ -707,10 +707,20 @@ function orderDetailHtml(order) {
     <p class="small">${t('client_label', { name: esc(order.client ? order.client.name : '') })} ${esc(order.client ? order.client.phone : '')}</p>
     <p class="small">${t('issue_return_plan', { t: fmtDT(order.started_at), t2: fmtDT(order.planned_end) })}</p>
     <table><thead><tr><th>${t('position')}</th><th>${t('units_barcode')}</th><th class="right">${t('amount')}</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="total-row"><span>${t('total')}</span><span>${money(order.final_total)}</span></div>
     <div class="total-row"><span>${t('deposit_paid')}</span><span>${money(order.deposit)} / ${money(order.paid)}</span></div>
+    ${order.status === 'active' ? `
+    <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px">
+      <div class="row small">
+        <div>${t('plan_cost', { v: money(order.estimated_total) })}</div>
+        <div><b>${t('actual_cost', { v: money(order.actual_total) })}</b>${order.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(order.late_fee) })}</span>` : ''}</div>
+        <div>${t('deposit_col')}: ${money(order.deposit)}</div>
+      </div>
+      ${order.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.actual_to_charge) })}</div>` : ''}
+      ${order.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.actual_to_refund) })}</div>` : ''}
+    </div>` : `
+    <div class="total-row"><span>${t('total')}</span><span>${money(order.final_total)}</span></div>
     ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.to_charge) })}</div>` : ''}
-    ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.to_refund) })}</div>` : ''}`;
+    ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.to_refund) })}</div>` : ''}`}`;
 }
 
 function printContract() {
