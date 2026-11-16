@@ -7,7 +7,12 @@
   authMode: null,
   draft: { client: null, clientName: '', lines: [], planned_end: '', deposit: null, deposit_method: 'cash', notes: '' },
   receiveOrderId: null,
-  invSessionId: null
+  invSessionId: null,
+  invStatus: '',
+  orderStatus: '',
+  orderOverdue: false,
+  orderPeriod: 'all',
+  creatingOrder: false
 };
 
 const CAT_ICONS = { 'Лыжи': 'Л', 'Сноуборд': 'Д', 'Ботинки': 'Б', 'Крепления': 'К', 'Палки': 'П', 'Шлем': 'Ш', 'Маска': 'М' };
@@ -71,13 +76,19 @@ function pricingActive(kind) {
   return state.pricings.filter((p) => p.active && p.kind === kind);
 }
 
+let modalCloseToken = 0;
+let modalClosing = false;
+
 function openModal(title, bodyHtml) {
   const root = $('#modal-root');
+  modalCloseToken++;
+  modalClosing = false;
   state.modalReturnFocus = document.activeElement;
   const titleId = 'modal-title-' + Date.now();
   root.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}"><button class="close" type="button" aria-label="${esc(t('close'))}">&times;</button><h2 id="${titleId}">${esc(title)}</h2><div class="body">${bodyHtml}</div></div>`;
   $('.close', root).onclick = closeModal;
   root.classList.add('open');
+  if (window.MOTION) MOTION.modalIn(root); else root.style.opacity = '';
   wireLabels(root);
   const focusTarget = $('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not(.close)', root)
     || $('.close', root);
@@ -86,8 +97,23 @@ function openModal(title, bodyHtml) {
 }
 
 function closeModal() {
-  $('#modal-root').classList.remove('open');
-  $('#modal-root').innerHTML = '';
+  const root = $('#modal-root');
+  if (!root.classList.contains('open')) {
+    root.innerHTML = '';
+    root.style.opacity = '';
+    return;
+  }
+  if (modalClosing) return;
+  const token = ++modalCloseToken;
+  modalClosing = true;
+  const finish = () => {
+    if (token !== modalCloseToken) return;
+    modalClosing = false;
+    root.classList.remove('open');
+    root.innerHTML = '';
+    root.style.opacity = '';
+  };
+  if (window.MOTION) MOTION.modalOut(root, finish); else finish();
   if (state.modalReturnFocus && state.modalReturnFocus.isConnected) state.modalReturnFocus.focus();
   state.modalReturnFocus = null;
 }
@@ -129,7 +155,7 @@ function confirmAction(msg) {
 
 function printHtml(title, html) {
   const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { toast(t('popup_blocked')); return; }
+  if (!w) { toast(t('popup_blocked'), 'error'); return; }
   w.document.write(`<!DOCTYPE html><html lang="${LANG}"><head><meta charset="utf-8"><title>${esc(title)}</title>
   <style>
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; font-size: 13px; padding: 24px; }
@@ -194,7 +220,7 @@ function renderAuth(mode) {
     event.preventDefault();
     const password = $('#auth-password').value;
     const confirm = $('#auth-confirm');
-    if (confirm && password !== confirm.value) return toast(t('passwords_mismatch'));
+    if (confirm && password !== confirm.value) return toast(t('passwords_mismatch'), 'error');
     const submit = $('button[type=submit]', event.currentTarget);
     submit.disabled = true;
     try {
@@ -207,7 +233,7 @@ function renderAuth(mode) {
       if (result.user.must_change_password) renderAuth('change');
       else await startApp();
     } catch (e) {
-      toast(e.message);
+      toast(e.message, 'error');
       submit.disabled = false;
     }
   };
@@ -259,13 +285,13 @@ function myPasswordModal() {
 
 async function changeMyPasswordDo() {
   const password = $('#mp-password').value;
-  if (password !== $('#mp-confirm').value) return toast(t('passwords_mismatch'));
+  if (password !== $('#mp-confirm').value) return toast(t('passwords_mismatch'), 'error');
   try {
     const result = await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ password }) });
     state.currentUser = result.user;
     closeModal();
-    toast(t('saved'));
-  } catch (e) { toast(e.message); }
+    toast(t('saved'), 'success');
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 function bindNav() {
@@ -276,7 +302,7 @@ function bindNav() {
 
 async function switchTab(tab, preserveReceiveOrder = false) {
   if (state.currentUser && state.currentUser.role === 'worker' && ['rates', 'reports'].includes(tab)) {
-    toast(t('auth_worker_limit'));
+    toast(t('auth_worker_limit'), 'info');
     tab = 'issue';
   }
   if (state.tab === 'issue') syncDraftFields();
@@ -337,10 +363,10 @@ async function issueScan(code) {
     state.draft.lines.push({
       pricing_id: pricing.id, kind: 'category', name: pricing.name, qty: 1, pin: it.id,
       barcode: it.barcode, model: it.model + ' ' + it.size, cat_name: it.cat_name });
-    toast(t('added', { bc: it.barcode }));
+    toast(t('added', { bc: it.barcode }), 'success');
     syncDraftFields();
     renderDraftBlock();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function receiveScan(code) {
@@ -353,7 +379,7 @@ async function receiveScan(code) {
     state.receiveOrderId = r.order_id;
     await renderReceive();
     setTimeout(() => conditionModal(r.order_id, r.unit_id), 120);
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function invCheckScan(code) {
@@ -361,12 +387,80 @@ async function invCheckScan(code) {
     if (!state.invSessionId) return toast(t('start_inv_session'));
     const r = await api('/api/inventory/scan', { method: 'POST', body: JSON.stringify({ session_id: state.invSessionId, barcode: code }) });
     if (!r.found) return toast(r.error || t('not_found_plain'));
-    toast(t('scanned_inv', { v: r.item.barcode + ' ' + r.item.model + ' ' + r.item.size }));
+    toast(t('scanned_inv', { v: r.item.barcode + ' ' + r.item.model + ' ' + r.item.size }), 'success');
     await renderInvCheck();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
-async function renderDashboard() {}
+function dashHtml(s) {
+  if (!s) return '';
+  const tile = (cls, label, value, action, alert) => `
+    <button type="button" class="dash-tile ${cls}${alert && Number(value) > 0 ? ' is-alert' : ''}" onclick="${action}">
+      <span class="dash-value">${value}</span>
+      <span class="dash-label">${esc(label)}</span>
+    </button>`;
+  return `<div class="dash" role="group" aria-label="${esc(t('dashboard_title'))}">
+    ${tile('stock', t('dash_stock'), s.stock, "goInv('in_stock')")}
+    ${tile('rented', t('dash_rented'), s.rented, "goInv('rented')")}
+    ${tile('service', t('dash_service'), s.service, "goInv('service')")}
+    ${tile('active', t('dash_active'), s.active_orders, "goOrders('active')")}
+    ${tile('overdue', t('dash_overdue'), s.overdue_orders, "goOrders('overdue')", true)}
+    ${tile('income', t('dash_income_today'), money(s.income_today || 0), 'dashIncome()')}
+  </div>`;
+}
+
+async function renderDashboard() {
+  const box = $('#dash');
+  if (!box) return;
+  const stats = await api('/api/dashboard').catch(() => null);
+  box.outerHTML = dashHtml(stats) || '<div class="dash" id="dash"></div>';
+}
+
+function goInv(status) {
+  state.invStatus = status || '';
+  return switchTab('inv');
+}
+
+function goOrders(kind) {
+  state.orderOverdue = kind === 'overdue';
+  state.orderStatus = ['active', 'returned', 'canceled'].includes(kind) ? kind : '';
+  state.orderPeriod = 'all';
+  state.orderQuery = '';
+  return switchTab('orders');
+}
+
+function dashIncome() {
+  if (state.currentUser && state.currentUser.role !== 'admin') return toast(t('auth_worker_limit'), 'info');
+  return switchTab('reports');
+}
+
+function setReturnPreset(kind) {
+  const input = $('#i-end');
+  if (!input) return;
+  const d = new Date();
+  const pad = (v) => String(v).padStart(2, '0');
+  if (kind === 'today') d.setHours(23, 59, 0, 0);
+  else if (kind === '1d') { d.setDate(d.getDate() + 1); d.setSeconds(0, 0); }
+  else if (kind === '7d') { d.setDate(d.getDate() + 7); d.setSeconds(0, 0); }
+  else if (kind === 'weekend') {
+    const add = ((7 - d.getDay()) % 7) || 7;
+    d.setDate(d.getDate() + add);
+    d.setHours(20, 0, 0, 0);
+  }
+  if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+  input.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  state.draft.planned_end = input.value;
+  updateIssueTotal();
+}
+
+function emptyState(o) {
+  return `<div class="empty-state">
+    <div class="empty-icon" aria-hidden="true">${o.icon || '•'}</div>
+    <div class="empty-title">${esc(o.title)}</div>
+    ${o.hint ? `<div class="empty-hint">${esc(o.hint)}</div>` : ''}
+    ${o.action ? `<button class="btn" type="button" onclick="${o.action}">${esc(o.actionLabel || '')}</button>` : ''}
+  </div>`;
+}
 
 function draftLinesHtml() {
   const st = state.draft;
@@ -384,13 +478,17 @@ function draftLinesHtml() {
 async function renderIssue() {
   const el = $('#tab-issue');
   const st = state.draft;
-  const activeOrders = await api('/api/orders/active');
+  const [activeOrders, dash] = await Promise.all([
+    api('/api/orders/active'),
+    api('/api/dashboard').catch(() => null)
+  ]);
   const overdue = activeOrders.filter((o) => o.overdue);
   window._overdueList = overdue.slice();
 
   const linesHtml = draftLinesHtml();
 
   el.innerHTML = `
+    ${dashHtml(dash)}
     <div class="card">
       <h2>${t('issue_title')}</h2>
       ${overdue.length ? `<div class="status-box warn" style="cursor:pointer" data-overdue="1">${t('overdue_warn', { ids: overdue.map((o) => '#' + o.id).join(', ') })}</div>` : ''}
@@ -424,6 +522,12 @@ async function renderIssue() {
         <div class="grow">
           <label>${t('planned_return')}</label>
           <input type="datetime-local" id="i-end" value="${st.planned_end}" oninput="updateIssueTotal()">
+          <div class="chips presets">
+            <button type="button" class="chip" onclick="setReturnPreset('today')">${t('preset_today')}</button>
+            <button type="button" class="chip" onclick="setReturnPreset('1d')">${t('preset_1d')}</button>
+            <button type="button" class="chip" onclick="setReturnPreset('weekend')">${t('preset_weekend')}</button>
+            <button type="button" class="chip" onclick="setReturnPreset('7d')">${t('preset_7d')}</button>
+          </div>
         </div>
         ${state.settings.deposit_enabled === '0' ? `<div class="grow small">${t('deposit_disabled_note')}</div>` : `<div class="grow">
           <label>${t('deposit')}</label>
@@ -436,7 +540,7 @@ async function renderIssue() {
       </div>
       <div style="margin-top:12px" class="row" id="issue-total"></div>
       <div style="margin-top:12px">
-        <button class="btn green" onclick="createOrder()">${t('create_order')}</button>
+        <button class="btn green" id="btn-create-order" onclick="createOrder()">${t('create_order')}</button>
       </div>
     </div>
 
@@ -598,7 +702,7 @@ async function pickItemDo(barcode) {
     pricing_id: pricing.id,
     kind: 'category', name: it.cat_name, qty: 1, pin: it.id,
     barcode: it.barcode, model: it.brand + ' ' + it.model + ' ' + it.size, cat_name: it.cat_name });
-  toast(t('added_full', { v: it.barcode + ' ' + it.model + ' ' + it.size }));
+  toast(t('added_full', { v: it.barcode + ' ' + it.model + ' ' + it.size }), 'success');
   closeModal();
   syncDraftFields();
   renderDraftBlock();
@@ -674,14 +778,18 @@ function draftToCreate() {
 }
 
 async function createOrder() {
+  if (state.creatingOrder) return;
+  const btn = $('#btn-create-order');
+  state.creatingOrder = true;
+  if (btn) btn.disabled = true;
   try {
     const body = draftToCreate();
-    if (!body.client_id) return toast(t('select_client'));
-    if (!body.lines.length) return toast(t('add_lines'));
-    if (!body.planned_end) return toast(t('select_return_date'));
+    if (!body.client_id) return toast(t('select_client'), 'error');
+    if (!body.lines.length) return toast(t('add_lines'), 'error');
+    if (!body.planned_end) return toast(t('select_return_date'), 'error');
     const order = await api('/api/orders', { method: 'POST', body: JSON.stringify(body) });
     state.draft = { client: null, clientName: '', lines: [], planned_end: '', deposit: null, deposit_method: 'cash', notes: '' };
-    toast(t('order_created', { id: order.id }));
+    toast(t('order_created', { id: order.id }), 'success');
     openModal(t('order_title', { id: order.id }), orderDetailHtml(order) + `
       <div class="row" style="margin-top:14px">
         <button class="btn" onclick="printContract()">${t('print_contract')}</button>
@@ -690,8 +798,12 @@ async function createOrder() {
         <button class="btn ghost" onclick="closeModal()">${t('close')}</button>
       </div>`);
     window._lastOrder = order;
-    renderIssue();
-  } catch (e) { toast(e.message); }
+    await renderIssue();
+  } catch (e) { toast(e.message, 'error'); }
+  finally {
+    state.creatingOrder = false;
+    if (btn) btn.disabled = false;
+  }
 }
 
 function unitLabel(u) {
@@ -699,6 +811,7 @@ function unitLabel(u) {
 }
 
 function orderDetailHtml(order) {
+  const moneyOr = (v) => (window.moneyHTML ? window.moneyHTML(v) : money(v));
   const rows = order.items.map((oi) => `
     <tr><td>${esc(oi.name)}</td>
     <td>${oi.units.map((u) => `<span class="mono small">${esc(unitLabel(u))}${u.return_time ? ' ✓' : ''}</span>`).join('<br>') || '—'}</td>
@@ -711,16 +824,16 @@ function orderDetailHtml(order) {
     ${order.status === 'active' ? `
     <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px">
       <div class="row small">
-        <div>${t('plan_cost', { v: money(order.estimated_total) })}</div>
-        <div><b>${t('actual_cost', { v: money(order.actual_total) })}</b>${order.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(order.late_fee) })}</span>` : ''}</div>
+        <div>${t('plan_cost', { v: moneyOr(order.estimated_total) })}</div>
+        <div><b>${t('actual_cost', { v: moneyOr(order.actual_total) })}</b>${order.late_fee ? ` <span class="badge overdue">${t('late_fee_badge', { v: money(order.late_fee) })}</span>` : ''}</div>
         <div>${t('deposit_col')}: ${money(order.deposit)}</div>
       </div>
-      ${order.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.actual_to_charge) })}</div>` : ''}
-      ${order.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.actual_to_refund) })}</div>` : ''}
+      ${order.actual_to_charge ? `<div class="status-box warn">${t('to_charge', { v: moneyOr(order.actual_to_charge) })}</div>` : ''}
+      ${order.actual_to_refund ? `<div class="status-box ok">${t('to_refund', { v: moneyOr(order.actual_to_refund) })}</div>` : ''}
     </div>` : `
-    <div class="total-row"><span>${t('total')}</span><span>${money(order.final_total)}</span></div>
-    ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: money(order.to_charge) })}</div>` : ''}
-    ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: money(order.to_refund) })}</div>` : ''}`}`;
+    <div class="total-row"><span>${t('total')}</span><span>${moneyOr(order.final_total)}</span></div>
+    ${order.to_charge ? `<div class="status-box warn">${t('to_charge', { v: moneyOr(order.to_charge) })}</div>` : ''}
+    ${order.to_refund ? `<div class="status-box ok">${t('to_refund', { v: moneyOr(order.to_refund) })}</div>` : ''}`}`;
 }
 
 function printContract() {
@@ -768,6 +881,8 @@ function goReceive(id) { state.receiveOrderId = id; switchTab('receive', true); 
 
 async function renderReceive() {
   const el = $('#tab-receive');
+  const visible = el.offsetParent !== null;
+  const flipState = visible && window.MOTION ? MOTION.flipCapture(el, '.order-card') : null;
   const activeOrders = await api('/api/orders/active');
   const cards = activeOrders.map(orderCardHtml).join('');
   const selHtml = `
@@ -776,13 +891,25 @@ async function renderReceive() {
       <div class="row scan-row"><input id="receive-scanner" class="scanner-input" aria-label="${t('scan_input_ph')}" placeholder="${t('scan_input_ph')}" onkeydown="if(event.key==='Enter'){event.preventDefault();scanFromInput(this)}"><div class="scan-hint">${t('receive_scan_hint')}</div></div>
       <div class="row" style="margin-top:8px"><button class="btn ghost" onclick="renderReceive()">${t('refresh')}</button></div>
     </div>`;
-  el.innerHTML = selHtml + (cards || `<div class="card muted">${t('no_active_orders')}</div>`);
+  el.innerHTML = selHtml + (cards || `<div class="card">${emptyState({
+    icon: '↩',
+    title: t('empty_receive_title'),
+    hint: t('empty_receive_hint'),
+    action: "switchTab('issue')",
+    actionLabel: t('go_issue')
+  })}</div>`);
+  if (window.MOTION) {
+    if (flipState) MOTION.flipPlay(flipState);
+    else MOTION.reveal(el, '.order-card', { limit: 12, stagger: 0.04 });
+  }
   if (state.receiveOrderId) {
     const card = $('#rc-' + state.receiveOrderId);
     if (card) {
       card.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      card.classList.add('flash');
-      setTimeout(() => card.classList.remove('flash'), 1200);
+      if (!window.MOTION || !MOTION.pulse(card)) {
+        card.classList.add('flash');
+        setTimeout(() => card.classList.remove('flash'), 1200);
+      }
     }
   }
 }
@@ -871,25 +998,28 @@ function returnUnitModalNote(orderId, unitId) {
 }
 
 async function returnUnitDone(orderId, unitId, ok, note) {
+  if (state.returningUnit) return;
+  state.returningUnit = true;
   try {
     await api('/api/orders/' + orderId + '/return-unit', {
       method: 'POST', body: JSON.stringify({ unit_id: unitId, condition_ok: ok, condition_note: note }) });
     closeModal();
-    toast(ok ? t('accepted') : t('damage_recorded'));
+    toast(ok ? t('accepted') : t('damage_recorded'), ok ? 'success' : 'info');
     state.receiveOrderId = orderId;
     await renderReceive();
     const scanner = $('#receive-scanner');
     if (scanner) scanner.focus();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
+  finally { state.returningUnit = false; }
 }
 
 async function closeOrder(id) {
   try {
     const order = await api('/api/orders/' + id + '/close', { method: 'POST', body: JSON.stringify({}) });
-    toast(t('order_closed_total', { id, v: money(order.final_total) }));
+    toast(t('order_closed_total', { id, v: money(order.final_total) }), 'success');
     state.receiveOrderId = null;
     await renderReceive();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function recordPaymentModal(orderId) {
@@ -923,29 +1053,75 @@ async function savePayment(orderId) {
         type: $('#pay-type').value,
         method: $('#pay-method').value }) });
     closeModal();
-    toast(t('saved'));
+    toast(t('saved'), 'success');
     if (state.tab === 'receive') await renderReceive();
     else {
       updateOrderRow(order);
       await orderInfo(orderId);
     }
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function renderOrders() {
   const el = $('#tab-orders');
+  const periodOptions = [['all', t('period_all')], ['today', t('period_today')], ['7', t('period_7')], ['30', t('period_30')]]
+    .map(([v, label]) => `<option value="${v}" ${state.orderPeriod === v ? 'selected' : ''}>${label}</option>`).join('');
   el.innerHTML = `
     <div class="card">
       <h2>${t('orders_title')}</h2>
-      <div class="row">
-        <div class="grow"><input id="o-search" placeholder="${t('search_number_ph')}" oninput="filterOrders(this.value)"></div>
+      ${orderFilterChips()}
+      <div class="row" style="margin-top:10px">
+        <div class="grow"><input id="o-search" placeholder="${t('search_number_ph')}" value="${esc(state.orderQuery || '')}" oninput="filterOrders(this.value)"></div>
+        <select id="o-period" aria-label="${t('period_label')}" onchange="setOrderPeriod(this.value)">${periodOptions}</select>
+        <span id="o-count" class="small"></span>
       </div>
       <table style="margin-top:8px"><thead><tr><th>${t('num')}</th><th>${t('client_col')}</th><th>${t('issue_col')}</th><th>${t('plan_return_col')}</th><th>${t('status_col')}</th><th class="right">${t('order_total_col')}</th></tr></thead><tbody id="o-tbody"></tbody></table>
+      <div id="o-empty" hidden></div>
       <button id="o-more" class="btn ghost" style="margin-top:10px" onclick="loadMoreOrders()" hidden>${t('load_more')}</button>
     </div>`;
   state.orderOffset = 0;
-  state.orderQuery = '';
   await loadOrderPage(true);
+}
+
+function orderFilterChips() {
+  const active = state.orderOverdue ? 'overdue' : (state.orderStatus || 'all');
+  const chip = (kind, label) => `<button type="button" class="chip${active === kind ? ' active' : ''}" data-kind="${kind}" onclick="setOrderFilter('${kind}')">${label}</button>`;
+  return `<div class="chips" id="o-chips" role="group" aria-label="${t('filters')}">
+    ${chip('all', t('filter_all'))}
+    ${chip('active', t('filter_active'))}
+    ${chip('overdue', t('filter_overdue'))}
+    ${chip('returned', t('filter_returned'))}
+    ${chip('canceled', t('filter_canceled'))}
+  </div>`;
+}
+
+function setOrderFilter(kind) {
+  state.orderOverdue = kind === 'overdue';
+  state.orderStatus = ['active', 'returned', 'canceled'].includes(kind) ? kind : '';
+  $$('#o-chips .chip').forEach((b) => b.classList.toggle('active', b.dataset.kind === kind));
+  loadOrderPage(true);
+}
+
+function setOrderPeriod(value) {
+  state.orderPeriod = value || 'all';
+  loadOrderPage(true);
+}
+
+function resetOrderFilters() {
+  state.orderStatus = '';
+  state.orderOverdue = false;
+  state.orderPeriod = 'all';
+  state.orderQuery = '';
+  renderOrders();
+}
+
+function orderPeriodRange() {
+  if (!state.orderPeriod || state.orderPeriod === 'all') return {};
+  const to = new Date();
+  const from = new Date(to);
+  if (state.orderPeriod === '7') from.setDate(from.getDate() - 6);
+  else if (state.orderPeriod === '30') from.setDate(from.getDate() - 29);
+  return { from: localDateInput(from), to: localDateInput(to) };
 }
 
 function filterOrders(q) {
@@ -963,13 +1139,41 @@ async function loadOrderPage(reset) {
     state.orderOffset = 0;
     tbody.innerHTML = '';
   }
-  const params = new URLSearchParams({ limit: '200', offset: String(state.orderOffset || 0), q: state.orderQuery || '' });
+  const range = orderPeriodRange();
+  const params = new URLSearchParams({
+    limit: '200',
+    offset: String(state.orderOffset || 0),
+    q: state.orderQuery || '',
+    status: state.orderStatus || '',
+    overdue: state.orderOverdue ? '1' : '0'
+  });
+  if (range.from) params.set('from', range.from);
+  if (range.to) params.set('to', range.to);
   const page = await api('/api/orders?' + params.toString());
   const rows = page.map(orderRowHtml).join('');
   tbody.insertAdjacentHTML('beforeend', rows);
+  if (window.MOTION && reset) MOTION.reveal(tbody, 'tr', { limit: 24, stagger: 0.02 });
   state.orderOffset = (state.orderOffset || 0) + page.length;
   const more = $('#o-more');
   if (more) more.hidden = page.length < 200;
+  const count = $('#o-count');
+  if (count) count.textContent = state.orderOffset ? t('shown_n', { n: state.orderOffset }) : '';
+  const empty = $('#o-empty');
+  if (empty && reset) {
+    if (!page.length) {
+      empty.innerHTML = emptyState({
+        icon: '⌕',
+        title: t('no_orders_found'),
+        hint: t('no_orders_found_hint'),
+        action: 'resetOrderFilters()',
+        actionLabel: t('reset_filters')
+      });
+      empty.hidden = false;
+    } else {
+      empty.hidden = true;
+      empty.innerHTML = '';
+    }
+  }
 }
 
 function loadMoreOrders() { loadOrderPage(false); }
@@ -1015,7 +1219,7 @@ async function cancelOrder(id) {
   if (!confirmAction(t('cancel_confirm', { id }))) return;
   await api('/api/orders/' + id + '/cancel', { method: 'POST' });
   closeModal();
-  toast(t('order_canceled', { id }));
+  toast(t('order_canceled', { id }), 'success');
   if (state.tab === 'issue') await renderIssue();
   else renderOrders();
 }
@@ -1063,6 +1267,9 @@ async function renderInv() {
       </td>
     </tr>`).join('');
 
+  const statusOptions = [['', t('filter_all')], ['in_stock', t('st_in_stock')], ['rented', t('st_rented')], ['service', t('st_service')], ['retired', t('st_retired')]]
+    .map(([v, label]) => `<option value="${v}" ${state.invStatus === v ? 'selected' : ''}>${label}</option>`).join('');
+
   el.innerHTML = `
     <div class="card">
       <h2>${t('stock_title')}</h2>
@@ -1075,6 +1282,7 @@ async function renderInv() {
       <div class="row" style="margin-top:10px">
         <div class="grow"><input id="inv-f" placeholder="${t('inv_search_ph')}" oninput="filterInv(this.value)"></div>
         <select id="inv-cat" onchange="filterInv()"><option value="">${t('all_categories')}</option>${cats.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+        <select id="inv-status" aria-label="${t('status_col')}" onchange="setInvStatus(this.value)">${statusOptions}</select>
         <button class="btn" onclick="itemAddModal()">${t('add_item')}</button>
         <button class="btn ghost" onclick="printLabelsSelected()">${t('print_stock_labels')}</button>
       </div>
@@ -1084,6 +1292,14 @@ async function renderInv() {
     </div>`;
   window._items = items;
   window._selLabels = new Set();
+  if (state.invStatus) filterInv();
+}
+
+function setInvStatus(value) {
+  state.invStatus = value || '';
+  const select = $('#inv-status');
+  if (select) select.value = state.invStatus;
+  filterInv();
 }
 
 function filterInv(q) {
@@ -1091,8 +1307,10 @@ function filterInv(q) {
   if (!tbody) return;
   const items = window._items || [];
   const cat = $('#inv-cat') ? $('#inv-cat').value : '';
+  const status = $('#inv-status') ? $('#inv-status').value : '';
+  if (status !== undefined) state.invStatus = status;
   const sq = ($('#inv-f') ? $('#inv-f').value : '').toLowerCase();
-  const f = items.filter((i) => (!cat || i.category_id == cat) && (!sq || (i.barcode + i.brand + i.model + i.size + i.cat_name).toLowerCase().includes(sq)));
+  const f = items.filter((i) => (!cat || i.category_id == cat) && (!status || i.status === status) && (!sq || (i.barcode + i.brand + i.model + i.size + i.cat_name).toLowerCase().includes(sq)));
   tbody.innerHTML = f.map((i) => `
     <tr>
       <td class="mono">${esc(i.barcode)}</td>
@@ -1149,9 +1367,9 @@ async function itemAddDo() {
         brand: $('#a-brand').value, model: $('#a-model').value, size: $('#a-size').value,
         barcode: '', cond: $('#a-cond').value, notes: $('#a-notes').value }) });
     closeModal();
-    toast(t('added_count', { n: r.created.length }));
+    toast(t('added_count', { n: r.created.length }), 'success');
     renderInv();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function itemEdit(id) {
@@ -1194,7 +1412,7 @@ async function itemRetire(id) {
   if (!item) return;
   if (!confirmAction(t('retire_confirm', { bc: item.barcode, model: item.brand + ' ' + item.model }))) return;
   await api('/api/items/' + id + '/retire', { method: 'POST' });
-  toast(t('retired_done'));
+  toast(t('retired_done'), 'success');
   renderInv();
 }
 
@@ -1231,6 +1449,7 @@ async function renderInvCheck() {
     sessionHtml = `
       <div class="card">
         <h3>${t('new_inventory')}</h3>
+        <p class="small">${t('invcheck_hint')}</p>
         <div class="row">
           <div class="grow"><label>${t('notes')}</label><input id="iv-note" placeholder="${t('inv_note_ph')}"></div>
           <button class="btn green" onclick="startInvSession()">${t('start')}</button>
@@ -1263,7 +1482,7 @@ async function startInvSession() {
   const note = $('#iv-note') ? $('#iv-note').value : '';
   const s = await api('/api/inventory/sessions', { method: 'POST', body: JSON.stringify({ note }) });
   state.invSessionId = s.id;
-  toast(t('session_started', { id: s.id }));
+  toast(t('session_started', { id: s.id }), 'success');
   renderInvCheck();
 }
 
@@ -1286,7 +1505,7 @@ async function finishInvSessionDone() {
   await api('/api/inventory/sessions/' + state.invSessionId + '/finish', { method: 'POST' });
   state.invSessionId = null;
   closeModal();
-  toast(t('completed'));
+  toast(t('completed'), 'success');
   renderInvCheck();
 }
 
@@ -1337,6 +1556,7 @@ async function renderClients() {
       </div>
     </div>`;
   window._clients = clients;
+  if (window.MOTION) MOTION.reveal($('#c-tbody'), 'tr', { limit: 24, stagger: 0.02 });
 }
 
 function filterClients(q) {
@@ -1365,12 +1585,12 @@ function newClientModal(selOnCreate) {
 
 async function clientCreateDo() {
   const name = $('#n-name').value.trim();
-  if (!name) return toast(t('enter_name'));
+  if (!name) return toast(t('enter_name'), 'error');
   const c = await api('/api/clients', {
     method: 'POST', body: JSON.stringify({
       name, phone: $('#n-phone').value, doc: $('#n-doc').value, notes: $('#n-notes').value }) });
   closeModal();
-  toast(t('client_added'));
+  toast(t('client_added'), 'success');
   if (state._selOnCreate || state.tab === 'issue') {
     if (state.tab === 'issue') { setClientBox(c); }
   }
@@ -1403,7 +1623,7 @@ function pickClient(id) {
   const c = (window._clients2 || []).find((x) => x.id === id);
   setClientBox(c);
   closeModal();
-  toast(t('client_selected'));
+  toast(t('client_selected'), 'success');
 }
 
 async function clientInfo(id) {
@@ -1560,7 +1780,7 @@ async function rateSave(id) {
     closeModal();
     state.pricings = await api('/api/pricings');
     renderRates();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 async function rateDel(id) {
   if (!confirmAction(t('delete_rate_confirm'))) return;
@@ -1711,7 +1931,7 @@ async function settingsSave() {
   if (state.settings.deposit_enabled === '0') state.draft.deposit = null;
   $('#brand').textContent = state.settings.business_name || t('app_title');
   document.title = state.settings.business_name || t('app_title');
-  toast(t('saved'));
+  toast(t('saved'), 'success');
 }
 
 function userAddModal() {
@@ -1731,9 +1951,9 @@ async function userCreateDo() {
       username: $('#nu-name').value, password: $('#nu-password').value, role: $('#nu-role').value
     }) });
     closeModal();
-    toast(t('user_created'));
+    toast(t('user_created'), 'success');
     await renderSettings();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 async function userSetActive(id, active, username) {
@@ -1741,7 +1961,7 @@ async function userSetActive(id, active, username) {
   try {
     await api('/api/users/' + id, { method: 'PATCH', body: JSON.stringify({ active }) });
     await renderSettings();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 function userResetModal(id, username) {
@@ -1755,15 +1975,15 @@ async function userResetPasswordDo(id) {
   try {
     await api('/api/users/' + id + '/reset-password', { method: 'POST', body: JSON.stringify({ password: $('#ur-password').value }) });
     closeModal();
-    toast(t('user_password_reset'));
+    toast(t('user_password_reset'), 'success');
     await renderSettings();
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 function downloadBackup() {
   window.location = '/api/backup';
 }
 
-init().catch((e) => { console.error(e); toast(t('init_err', { e: e.message })); });
+init().catch((e) => { console.error(e); toast(t('init_err', { e: e.message }), 'error'); });
 
 document.addEventListener('click', function(ev){ var ow=ev.target.closest('[data-overdue]'); if(ow){ ev.preventDefault(); ev.stopPropagation(); overdueInfo(); return; } var ob=ev.target.closest('[data-order]'); if(ob){ ev.preventDefault(); ev.stopPropagation(); closeModal(); setTimeout(function(){ orderInfo(parseInt(ob.dataset.order)); },40); return; } });

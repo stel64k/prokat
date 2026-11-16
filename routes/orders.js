@@ -67,15 +67,21 @@ module.exports = function registerOrders(app, ctx) {
   app.get('/api/orders', (req, res) => {
     const status = req.query.status || '';
     const query = String(req.query.q || '').trim();
+    const overdue = req.query.overdue === '1' ? 1 : 0;
+    const from = String(req.query.from || '').slice(0, 10);
+    const to = String(req.query.to || '').slice(0, 10);
     const limit = Math.max(1, Math.min(200, parseInt(req.query.limit) || 200));
     const offset = Math.max(0, parseInt(req.query.offset) || 0);
     const rows = db.prepare(`
       SELECT o.*, c.name AS client_name FROM orders o
       LEFT JOIN clients c ON c.id = o.client_id
       WHERE (@status = '' OR o.status = @status)
+        AND (@overdue = 0 OR (o.status = 'active' AND o.planned_end IS NOT NULL AND o.planned_end < @now))
+        AND (@from = '' OR date(o.started_at) >= date(@from))
+        AND (@to = '' OR date(o.started_at) <= date(@to))
         AND (@query = '' OR CAST(o.id AS TEXT) LIKE @like OR c.name LIKE @like OR c.phone LIKE @like)
       ORDER BY o.id DESC LIMIT @limit OFFSET @offset
-    `).all({ status, query, like: '%' + query + '%', limit, offset });
+    `).all({ status, overdue, now: localNow(), from, to, query, like: '%' + query + '%', limit, offset });
     res.json(enrichOrderListRows(rows));
   });
 

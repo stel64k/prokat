@@ -111,7 +111,14 @@
     dash_active: 'Активных заказов', dash_overdue: 'Просрочено', dash_income_today: 'Поступило сегодня',
     no_category_rate: 'Для этой категории нет тарифа. Обратитесь к администратору.',
     cancel_order_title: 'Отмена заказа #{id}', cancel_order_body: 'Итого: {total}. Получено: {paid}. К возврату клиенту: {refund}.',
-    hour_rate: 'Час ({cur})', day_rate: 'Сутки ({cur})', week_rate: 'Неделя ({cur})', flat_rate: 'Фиксированная цена ({cur}, услуга)'
+    hour_rate: 'Час ({cur})', day_rate: 'Сутки ({cur})', week_rate: 'Неделя ({cur})', flat_rate: 'Фиксированная цена ({cur}, услуга)',
+    filter_all: 'Все', filter_active: 'Активные', filter_overdue: 'Просроченные', filter_returned: 'Возвращённые', filter_canceled: 'Отменённые',
+    filters: 'Фильтры', period_label: 'Период', period_all: 'Всё время', period_today: 'Сегодня', period_7: '7 дней', period_30: '30 дней',
+    shown_n: 'Показано: {n}', no_orders_found: 'Заказы не найдены', no_orders_found_hint: 'Измените фильтры или период, чтобы увидеть больше заказов.',
+    reset_filters: 'Сбросить фильтры',
+    preset_today: 'До конца дня', preset_1d: '+1 день', preset_weekend: 'Выходные', preset_7d: '+7 дней',
+    empty_receive_title: 'Все предметы возвращены', empty_receive_hint: 'Активных заказов нет. Оформите выдачу, чтобы начать.',
+    go_issue: 'Перейти к выдаче', invcheck_hint: 'Инвентаризация сверяет фактическое наличие со складом. Начните сессию и сканируйте штрихкоды.'
   },
   uk: {
     app_title: 'Прокат', lang_name: 'Українська', tab_issue: 'Видача', tab_receive: 'Приймання', tab_orders: 'Замовлення', tab_inv: 'Склад',
@@ -224,7 +231,14 @@
     dash_active: 'Активних замовлень', dash_overdue: 'Прострочено', dash_income_today: 'Надійшло сьогодні',
     no_category_rate: 'Для цієї категорії немає тарифу. Зверніться до адміністратора.',
     cancel_order_title: 'Скасування замовлення #{id}', cancel_order_body: 'Разом: {total}. Отримано: {paid}. До повернення клієнту: {refund}.',
-    hour_rate: 'Година ({cur})', day_rate: 'Доба ({cur})', week_rate: 'Тиждень ({cur})', flat_rate: 'Фіксована ціна ({cur}, послуга)'
+    hour_rate: 'Година ({cur})', day_rate: 'Доба ({cur})', week_rate: 'Тиждень ({cur})', flat_rate: 'Фіксована ціна ({cur}, послуга)',
+    filter_all: 'Усі', filter_active: 'Активні', filter_overdue: 'Прострочені', filter_returned: 'Повернені', filter_canceled: 'Скасовані',
+    filters: 'Фільтри', period_label: 'Період', period_all: 'Увесь час', period_today: 'Сьогодні', period_7: '7 днів', period_30: '30 днів',
+    shown_n: 'Показано: {n}', no_orders_found: 'Замовлень не знайдено', no_orders_found_hint: 'Змініть фільтри або період, щоб побачити більше замовлень.',
+    reset_filters: 'Скинути фільтри',
+    preset_today: 'До кінця дня', preset_1d: '+1 день', preset_weekend: 'Вихідні', preset_7d: '+7 днів',
+    empty_receive_title: 'Усі предмети повернено', empty_receive_hint: 'Активних замовлень немає. Оформіть видачу, щоб почати.',
+    go_issue: 'Перейти до видачі', invcheck_hint: 'Інвентаризація звіряє фактичну наявність зі складом. Почніть сесію та скануйте штрихкоди.'
   },
   en: {
     app_title: 'Rental', lang_name: 'English', tab_issue: 'Issue', tab_receive: 'Return', tab_orders: 'Orders', tab_inv: 'Stock',
@@ -337,7 +351,14 @@
     dash_active: 'Active orders', dash_overdue: 'Overdue', dash_income_today: 'Received today',
     no_category_rate: 'There is no rate for this category. Contact an administrator.',
     cancel_order_title: 'Cancel order #{id}', cancel_order_body: 'Total: {total}. Received: {paid}. To refund: {refund}.',
-    hour_rate: 'Hour ({cur})', day_rate: 'Day ({cur})', week_rate: 'Week ({cur})', flat_rate: 'Flat price ({cur}, service)'
+    hour_rate: 'Hour ({cur})', day_rate: 'Day ({cur})', week_rate: 'Week ({cur})', flat_rate: 'Flat price ({cur}, service)',
+    filter_all: 'All', filter_active: 'Active', filter_overdue: 'Overdue', filter_returned: 'Returned', filter_canceled: 'Canceled',
+    filters: 'Filters', period_label: 'Period', period_all: 'All time', period_today: 'Today', period_7: '7 days', period_30: '30 days',
+    shown_n: 'Shown: {n}', no_orders_found: 'No orders found', no_orders_found_hint: 'Change filters or the period to see more orders.',
+    reset_filters: 'Reset filters',
+    preset_today: 'End of day', preset_1d: '+1 day', preset_weekend: 'Weekend', preset_7d: '+7 days',
+    empty_receive_title: 'All items returned', empty_receive_hint: 'No active orders. Create an issue to get started.',
+    go_issue: 'Go to issue', invcheck_hint: 'Inventory compares actual stock with the system. Start a session and scan barcodes.'
   }
 };
 
